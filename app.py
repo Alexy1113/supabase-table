@@ -287,6 +287,35 @@ def prepare_dishes(source, language):
     df.loc[syrup_mask, "product_type"] = "syrups"
     df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
+
+    # Correct a few known Hesburger parser classifications using the item names
+    # in both languages, so the result is stable in either interface language.
+    name_columns = [column for column in ("dish_name_ru", "dish_name_et", "dish_name") if column in df.columns]
+    if name_columns:
+        names_by_language = pd.DataFrame(
+            {
+                column: df[column].fillna("").astype(str).str.strip().str.casefold()
+                for column in name_columns
+            },
+            index=df.index,
+        )
+        all_names = names_by_language.agg(" ".join, axis=1)
+
+        # Tšilli-juustunagitsad (4/6/9 tk, etc.) are appetizers, not a separate category.
+        nuggets_mask = all_names.str.contains(
+            r"(tšilli[-\s]?juustunagitsad|chilli?[-\s]?cheese[-\s]?nuggets?|чили[^,;]*наггетс)",
+            case=False,
+            regex=True,
+            na=False,
+        )
+        df.loc[nuggets_mask, "product_type"] = "appetizers"
+        df.loc[nuggets_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["appetizers"]
+
+        # The standalone Hesburger item named "Lisandid" belongs under Other/Muu.
+        lisandid_mask = names_by_language.eq("lisandid").any(axis=1)
+        df.loc[lisandid_mask, "product_type"] = "other"
+        df.loc[lisandid_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["other"]
+
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
     fallback_price = df["price"] if "price" in df.columns else pd.Series(pd.NA, index=df.index)
     df["display_price"] = pd.to_numeric(price_source, errors="coerce").fillna(
