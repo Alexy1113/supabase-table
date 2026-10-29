@@ -112,7 +112,8 @@ PRODUCT_TYPE_LABELS = {
         "salads": "Салаты",
         "appetizers": "Закуски",
         "sides": "Гарниры",
-        "sauces": "Соусы",
+        "sauces": "Соусы и добавки",
+        "syrups": "Сиропы и добавки",
         "desserts": "Десерты",
         "drinks": "Напитки",
         "breakfast": "Завтраки",
@@ -139,7 +140,8 @@ PRODUCT_TYPE_LABELS = {
         "salads": "Salatid",
         "appetizers": "Suupisted",
         "sides": "Lisandid",
-        "sauces": "Kastmed",
+        "sauces": "Kastmed ja lisandid",
+        "syrups": "Siirupid ja lisandid",
         "desserts": "Magustoidud",
         "drinks": "Joogid",
         "breakfast": "Hommikusöök",
@@ -274,6 +276,19 @@ def prepare_dishes(source, language):
             ),
             axis=1,
         )
+
+    # A syrup such as "Karamellisiirup kohvile" may be listed near coffee,
+    # but it is an add-on, not a beverage. Override stale database categorization too.
+    if "product_type" not in df.columns:
+        df["product_type"] = None
+    syrup_mask = df["display_name"].fillna("").astype(str).str.contains(
+        r"(siirup|syrup|siroop|сироп)",
+        case=False,
+        regex=True,
+        na=False,
+    )
+    df.loc[syrup_mask, "product_type"] = "syrups"
+    df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
     fallback_price = df["price"] if "price" in df.columns else pd.Series(pd.NA, index=df.index)
