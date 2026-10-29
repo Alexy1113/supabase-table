@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import streamlit as st
 from supabase import create_client
@@ -253,6 +254,14 @@ def normalize_display_variant(value, language):
         return "—"
 
     key = " ".join(value.split()).casefold()
+
+    # Piece-count variants are stored canonically as "6 tk", "8 tk", etc.
+    # Translate only the unit for the Russian interface.
+    size_match = re.fullmatch(r"(\d+)\s*tk", key)
+    if size_match:
+        count = size_match.group(1)
+        return f"{count} шт." if language == "Русский" else f"{count} tk"
+
     labels = {
         "burger": {
             "Русский": "Только бургер",
