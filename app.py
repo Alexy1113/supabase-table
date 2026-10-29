@@ -1,3 +1,4 @@
+import html
 import re
 import pandas as pd
 import streamlit as st
@@ -431,7 +432,63 @@ def render_cheapest_by_category(df, language, t):
     category_groups.sort(key=lambda item: item[0].casefold())
 
     st.subheader(t["cheapest_heading"])
-    for label, category_key, group in category_groups:
+    st.markdown(
+        """
+        <style>
+        .cheapest-category-title {
+            color: #0f766e;
+            font-size: 1.25rem;
+            font-weight: 750;
+            letter-spacing: 0.01em;
+            margin: 0.35rem 0 0.75rem 0;
+        }
+        .cheapest-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.7rem 0.85rem;
+            margin: 0.35rem 0;
+            border: 1px solid rgba(128, 128, 128, 0.20);
+            border-radius: 0.75rem;
+            background: rgba(128, 128, 128, 0.045);
+        }
+        .cheapest-item-name {
+            font-weight: 650;
+            line-height: 1.35;
+        }
+        .cheapest-item-restaurant {
+            font-size: 0.88rem;
+            opacity: 0.78;
+            margin-top: 0.2rem;
+        }
+        .cheapest-price {
+            flex-shrink: 0;
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            background: #0f766e;
+            color: #ffffff;
+            border-radius: 999px;
+            font-weight: 750;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .cheapest-category-divider {
+            border: 0;
+            border-top: 1px solid rgba(128, 128, 128, 0.28);
+            margin: 1.15rem 0 1.05rem 0;
+        }
+        @media (max-width: 560px) {
+            .cheapest-item-row { padding: 0.65rem; gap: 0.55rem; }
+            .cheapest-item-name { font-size: 0.95rem; }
+            .cheapest-price { padding: 0.3rem 0.55rem; font-size: 0.92rem; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    for category_index, (label, category_key, group) in enumerate(category_groups):
         lowest_price = round(float(group["display_price"].min()), 2)
         winners = group[group["display_price"].round(2) == lowest_price].copy()
         winners = winners.sort_values(
@@ -439,11 +496,31 @@ def render_cheapest_by_category(df, language, t):
             key=lambda series: series.astype(str).str.casefold(),
         )
 
-        st.markdown(f"### {label}")
+        safe_label = html.escape(str(label))
+        st.markdown(
+            f'<div class="cheapest-category-title">{safe_label}</div>',
+            unsafe_allow_html=True,
+        )
+
         for _, row in winners.iterrows():
-            name = str(row["display_name"])
-            restaurant = str(row["restaurant_display"])
-            st.markdown(f"**{name}** · **{lowest_price:.2f} €** · {restaurant}")
+            name = html.escape(str(row["display_name"]))
+            restaurant = html.escape(str(row["restaurant_display"]))
+            price_text = f"{lowest_price:.2f} €".replace(".", ",") if language == "Русский" else f"{lowest_price:.2f} €"
+            safe_price = html.escape(price_text)
+            st.markdown(
+                f'<div class="cheapest-item-row">'
+                f'<div><div class="cheapest-item-name">{name}</div>'
+                f'<div class="cheapest-item-restaurant">{restaurant}</div></div>'
+                f'<span class="cheapest-price">{safe_price}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        if category_index < len(category_groups) - 1:
+            st.markdown(
+                '<hr class="cheapest-category-divider">',
+                unsafe_allow_html=True,
+            )
 
 
 
