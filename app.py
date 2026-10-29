@@ -50,7 +50,8 @@ TRANSLATIONS = {
         "price_down": "Дешевле",
         "price_up": "Дороже",
         "same": "Без изменения",
-        "read_only": "Сайт работает в режиме просмотра: посетители могут читать меню, но не изменять цены.",
+        "read_only": "Последнее обновление базы данных: {date}",
+        "last_update_unknown": "Дата последнего обновления базы данных неизвестна.",
         "showing": "Показано",
         "of": "из",
         "minimum": "Минимум",
@@ -94,7 +95,8 @@ TRANSLATIONS = {
         "price_down": "Odavam",
         "price_up": "Kallim",
         "same": "Muutuseta",
-        "read_only": "Veebileht on vaaterežiimis: külastajad saavad menüüd lugeda, kuid ei saa hindu muuta.",
+        "read_only": "Andmebaasi viimati uuendatud: {date}",
+        "last_update_unknown": "Andmebaasi viimase uuendamise aeg pole teada.",
         "showing": "Näidatakse",
         "of": "/",
         "minimum": "Miinimum",
@@ -813,7 +815,6 @@ def main():
 
     st.title("🍽️ " + t["title"])
     st.caption(t["subtitle"])
-    st.caption(t["read_only"])
 
     try:
         source = load_table("dishes")
@@ -827,6 +828,19 @@ def main():
                  "SUPABASE_KEY peab olema avalik publishable/anon-võti; lugemisõigust juhib RLS."
         )
         st.stop()
+
+    # Show the newest update timestamp stored in the database (Tallinn local time).
+    latest_update = None
+    if "last_updated" in source.columns:
+        update_times = pd.to_datetime(source["last_updated"], errors="coerce", utc=True)
+        if update_times.notna().any():
+            latest_update = update_times.max()
+
+    if latest_update is not None and pd.notna(latest_update):
+        update_text = latest_update.tz_convert("Europe/Tallinn").strftime("%d.%m.%Y %H:%M")
+        st.caption(t["read_only"].format(date=update_text))
+    else:
+        st.caption(t["last_update_unknown"])
 
     if source.empty:
         st.info(t["empty"])
