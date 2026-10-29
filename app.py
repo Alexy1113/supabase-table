@@ -580,13 +580,14 @@ CATEGORY_EMOJIS = {
     "burgerid": "🍔", "tortillad": "🌯", "salatid": "🥗", "suupisted": "🥟",
     "lisandid": "🍚", "kastmed": "🌶️", "kastmed ja lisandid": "🌶️",
     "siirupid ja lisandid": "🍯", "magustoidud": "🍰", "joogid": "🥤",
-    "alkohoolsed joogid": "🍷", "alkoholjoogid": "🍷", "hommikusöök": "🍳",
+    "alkohoolsed joogid": "🍷", "alkohoolised joogid": "🍷", "alkoholjoogid": "🍷",
+    "hommikusöök": "🍳", "hommikusöögid": "🍳", "hommikusoogid": "🍳",
     "kampaaniad": "🏷️", "muu": "➕", "muud": "➕",
     "jäätisekokteilid": "🥤", "komplektid": "📦",
-    "pelmeenid ja dim sum": "🥟", "sashimi": "🍣", "nigiri": "🍣",
-    "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤",
+    "pelmeenid ja dim sum": "🥟", "eelroad": "🥟", "sashimi": "🍣", "nigiri": "🍣",
+    "gunkan": "🍣", "gunkanid": "🍣", "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤",
     "sushirullid ja maki": "🍣", "supid": "🍲", "bow'id": "🥣",
-    "nuudlid": "🍜", "pearoad": "🍛",
+    "nuudlid": "🍜", "pearoad": "🍛", "põhiroad": "🍛", "pohiroad": "🍛", "pqhiroad": "🍛",
 }
 
 
