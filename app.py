@@ -523,6 +523,7 @@ def render_cheapest_by_category(df, language, t):
 
 
 CATEGORY_EMOJIS = {
+    # Canonical product_type values.
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
     "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
@@ -533,6 +534,30 @@ CATEGORY_EMOJIS = {
     "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣",
     "sushi rolls": "🍣", "sushirullid": "🍣", "rolls": "🍣", "soups": "🍲",
     "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
+
+    # Russian display labels.
+    "бургеры": "🍔", "бургер": "🍔", "тортильи": "🌯", "салаты": "🥗",
+    "закуски": "🥟", "гарниры": "🍚", "гарнир": "🍚", "соусы": "🌶️",
+    "соусы и добавки": "🌶️", "сиропы и добавки": "🍯", "десерты": "🍰",
+    "напитки": "🥤", "алкогольные напитки": "🍷", "алкоголь": "🍷",
+    "завтраки": "🍳", "акции": "🏷️", "другое": "➕", "другие": "➕",
+    "молочные коктейли": "🥤", "наборы и комбо": "📦", "наборы": "📦",
+    "пельмени и дим-сам": "🥟", "сашими": "🍣", "нигири": "🍣",
+    "гунканы": "🍣", "инари": "🍣", "хосомаки": "🍣", "темпура": "🍤",
+    "роллы и маки": "🍣", "супы": "🍲", "боулы": "🥣", "лапша": "🍜",
+    "основные блюда": "🍛",
+
+    # Estonian display labels.
+    "burgerid": "🍔", "tortillad": "🌯", "salatid": "🥗", "suupisted": "🥟",
+    "lisandid": "🍚", "kastmed": "🌶️", "kastmed ja lisandid": "🌶️",
+    "siirupid ja lisandid": "🍯", "magustoidud": "🍰", "joogid": "🥤",
+    "alkohoolsed joogid": "🍷", "alkoholjoogid": "🍷", "hommikusöök": "🍳",
+    "kampaaniad": "🏷️", "muu": "➕", "muud": "➕",
+    "jäätisekokteilid": "🥤", "komplektid": "📦",
+    "pelmeenid ja dim sum": "🥟", "sashimi": "🍣", "nigiri": "🍣",
+    "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤",
+    "sushirullid ja maki": "🍣", "supid": "🍲", "bow'id": "🥣",
+    "nuudlid": "🍜", "pearoad": "🍛",
 }
 
 
