@@ -869,7 +869,7 @@ def main():
                     text-anchor="middle">JÕHVI</text>
             </g>
           </svg>
-          <h1 style="margin:0; padding:0; line-height:1.15; font-size:2.35rem; font-family:Segoe UI, Helvetica, Arial, sans-serif;">
+          <h1 style="margin:0; padding:0; line-height:1.15; font-size:2.35rem; font-family:Segoe UI, Helvetica, Arial, sans-serif; text-transform:uppercase;">
             {html.escape(t["title"])}
           </h1>
         </div>
