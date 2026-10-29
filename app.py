@@ -543,27 +543,27 @@ def category_emoji(*values):
         value = nonempty(value)
         if value is None:
             continue
-        key = re.sub(r"[\\s_-]+", " ", value.casefold()).strip()
+        key = re.sub(r"[\s_-]+", " ", value.casefold()).strip()
         keys.append(key)
 
     # Match specific categories first; display labels may differ from product_type.
     if any(re.search(r"(?:алкогол|alkohol|alcohol)", key) for key in keys):
         return "🍷"
-    if any(re.search(r"(?:набор|комплект|комбо|\\bsets?\\b|\\bcombo\\b|komplekt)", key) for key in keys):
+    if any(re.search(r"(?:набор|комплект|комбо|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
         return "📦"
-    if any(re.search(r"(?:ролл|\\brolls?\\b|sushirull|\\brullid?\\b|maki)", key) for key in keys):
+    if any(re.search(r"(?:ролл|\brolls?\b|sushirull|\brullid?\b|maki)", key) for key in keys):
         return "🍣"
-    if any(re.search(r"(?:соус|kastm|\\bsauces?\\b)", key) for key in keys):
+    if any(re.search(r"(?:соус|kastm|\bsauces?\b)", key) for key in keys):
         return "🌶️"
-    if any(re.search(r"(?:суп|\\bsoups?\\b|supid)", key) for key in keys):
+    if any(re.search(r"(?:суп|\bsoups?\b|supid)", key) for key in keys):
         return "🍲"
-    if any(re.search(r"(?:гарнир|lisand|\\bsides?\\b)", key) for key in keys):
+    if any(re.search(r"(?:гарнир|lisand|\bsides?\b)", key) for key in keys):
         return "🍚"
     if any(key in {"другое", "другие", "muu", "muud", "other", "others"} for key in keys):
         return "➕"
 
     normalized_map = {
-        re.sub(r"[\\s_-]+", " ", key.casefold()).strip(): emoji
+        re.sub(r"[\s_-]+", " ", key.casefold()).strip(): emoji
         for key, emoji in CATEGORY_EMOJIS.items()
     }
     for key in keys:
