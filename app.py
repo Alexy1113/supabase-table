@@ -877,7 +877,10 @@ def main():
         """,
         unsafe_allow_html=True,
     )
-    st.caption(t["subtitle"])
+    st.markdown(
+        f'<div style="font-size:0.95rem; line-height:1.4; margin-top:0.1rem; margin-bottom:0.9rem;">{html.escape(t["subtitle"])}</div>',
+        unsafe_allow_html=True,
+    )
 
     try:
         source = load_table("dishes")
@@ -972,7 +975,10 @@ def main():
             m4.metric(
                 t["cheapest_dish"],
                 f'{cheapest_dish["display_price"]:.2f} €',
-                help=f'{cheapest_dish["display_name"]} — {cheapest_dish["restaurant_display"]}',
+            )
+            m4.caption(
+                f'{html.escape(str(cheapest_dish["display_name"]))} · '
+                f'{html.escape(str(cheapest_dish["restaurant_display"]))}'
             )
 
         if eligible_drinks.empty:
@@ -982,7 +988,10 @@ def main():
             m5.metric(
                 t["cheapest_drink"],
                 f'{cheapest_drink["display_price"]:.2f} €',
-                help=f'{cheapest_drink["display_name"]} — {cheapest_drink["restaurant_display"]}',
+            )
+            m5.caption(
+                f'{html.escape(str(cheapest_drink["display_name"]))} · '
+                f'{html.escape(str(cheapest_drink["restaurant_display"]))}'
             )
 
     tab_menu, tab_cheapest = st.tabs(
