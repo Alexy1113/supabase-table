@@ -887,12 +887,21 @@ def main():
             "соусы", "соусы и добавки", "kastmed", "kastmed ja lisandid", "sauces",
             "сиропы", "сиропы и добавки", "siirupid ja lisandid", "syrups",
         }
-        category_values = filtered["display_category"].fillna("").astype(str).str.strip().str.casefold()
-        product_values = filtered["product_type"].fillna("").astype(str).str.strip().str.casefold()
-        eligible = filtered[
-            ~category_values.isin(excluded_categories)
-            & ~product_values.isin(excluded_categories | {"sauce", "syrup"})
+        # Check every available category field, not only the localized display label.
+        # Some Hesburger rows still carry "Kastmed" in the raw Estonian category.
+        category_columns = [
+            column for column in (
+                "display_category", "category_ru", "category_et", "product_type"
+            )
+            if column in filtered.columns
         ]
+        category_text = filtered[category_columns].fillna("").astype(str).agg(" ".join, axis=1).str.casefold()
+        excluded_pattern = (
+            r"друг|\bmuu\b|\bother\b|напит|\bjoogid\b|\bdrinks?\b|"
+            r"соус|\bkastmed?\b|\bsauces?\b|сироп|siirup|\bsyrups?\b"
+        )
+        excluded_mask = category_text.str.contains(excluded_pattern, regex=True, na=False)
+        eligible = filtered[~excluded_mask]
         m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
         m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
         m3.metric(t["changes"], f"{price_changes:,}".replace(",", " "))
