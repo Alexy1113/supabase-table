@@ -31,7 +31,8 @@ TRANSLATIONS = {
         "items": "Позиций",
         "restaurants": "Ресторанов",
         "changes": "Позиций с изменением цены",
-        "cheapest": "Самая низкая цена в выборке",
+        "cheapest_dish": "Самое дешёвое блюдо",
+        "cheapest_drink": "Самый дешёвый напиток",
         "tab_menu": "Меню и цены",
         "tab_compare": "Сравнение",
         "tab_cheapest": "Самые дешёвые",
@@ -76,7 +77,8 @@ TRANSLATIONS = {
         "items": "Tooteid",
         "restaurants": "Restorane",
         "changes": "Hinna muutusega tooteid",
-        "cheapest": "Valiku madalaim hind",
+        "cheapest_dish": "Odavaim roog",
+        "cheapest_drink": "Odavaim jook",
         "tab_menu": "Menüü ja hinnad",
         "tab_compare": "Võrdlus",
         "tab_cheapest": "Odavaimad",
@@ -882,48 +884,72 @@ def main():
     filtered = filter_dishes(dishes, t)
 
     total_items = len(filtered)
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
     if filtered.empty:
         m1.metric(t["items"], "0")
         m2.metric(t["restaurants"], "0")
         m3.metric(t["changes"], "0")
-        m4.metric(t["cheapest"], "—")
+        m4.metric(t["cheapest_dish"], "—")
+        m5.metric(t["cheapest_drink"], "—")
     else:
         total_restaurants = filtered["restaurant_display"].nunique()
         price_changes = int((filtered["display_delta"].fillna(0) != 0).sum())
-        # Exclude non-meal add-on categories from the lowest-price headline.
-        excluded_categories = {
-            "другое", "другие", "muu", "muud", "other", "others",
-            "напитки", "joogid", "drinks",
-            "соусы", "соусы и добавки", "kastmed", "kastmed ja lisandid", "sauces",
-            "сиропы", "сиропы и добавки", "siirupid ja lisandid", "syrups",
-        }
-        # Check every available category field, not only the localized display label.
-        # Some Hesburger rows still carry "Kastmed" in the raw Estonian category.
+
+        # Build a searchable category string from localized and raw category fields.
+        # This catches inconsistent parser values, including Hesburger's "Kastmed".
         category_columns = [
             column for column in (
                 "display_category", "category_ru", "category_et", "product_type"
             )
             if column in filtered.columns
         ]
-        category_text = filtered[category_columns].fillna("").astype(str).agg(" ".join, axis=1).str.casefold()
-        excluded_pattern = (
-            r"друг|\bmuu\b|\bother\b|напит|\bjoogid\b|\bdrinks?\b|"
-            r"соус|\bkastmed?\b|\bsauces?\b|сироп|siirup|\bsyrups?\b"
+        category_text = (
+            filtered[category_columns]
+            .fillna("")
+            .astype(str)
+            .agg(" ".join, axis=1)
+            .str.casefold()
         )
-        excluded_mask = category_text.str.contains(excluded_pattern, regex=True, na=False)
-        eligible = filtered[~excluded_mask]
+
+        # Food KPI excludes drinks/alcohol and non-food add-ons.
+        non_dish_pattern = (
+            r"друг|\bmuu\b|\bother\b|напит|\bjoogid\b|\bdrinks?\b|"
+            r"соус|\bkastmed?\b|\bsauces?\b|сироп|siirup|\bsyrups?\b|"
+            r"алкогол|\balcohol\b|\balkohol\b|\balkohools?\b"
+        )
+        non_dish_mask = category_text.str.contains(non_dish_pattern, regex=True, na=False)
+        eligible_dishes = filtered[~non_dish_mask]
+
+        # The drink KPI combines the drinks and alcoholic-drinks categories.
+        drink_pattern = (
+            r"напит|\bjoogid\b|\bdrinks?\b|алкогол|\balcohol\b|"
+            r"\balcoholic\b|\balkohol\b|\balkohools?\b"
+        )
+        drink_mask = category_text.str.contains(drink_pattern, regex=True, na=False)
+        eligible_drinks = filtered[drink_mask]
+
         m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
         m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
         m3.metric(t["changes"], f"{price_changes:,}".replace(",", " "))
-        if eligible.empty:
-            m4.metric(t["cheapest"], "—")
+
+        if eligible_dishes.empty:
+            m4.metric(t["cheapest_dish"], "—")
         else:
-            cheapest = eligible.loc[eligible["display_price"].idxmin()]
+            cheapest_dish = eligible_dishes.loc[eligible_dishes["display_price"].idxmin()]
             m4.metric(
-                t["cheapest"],
-                f'{cheapest["display_price"]:.2f} €',
-                help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
+                t["cheapest_dish"],
+                f'{cheapest_dish["display_price"]:.2f} €',
+                help=f'{cheapest_dish["display_name"]} — {cheapest_dish["restaurant_display"]}',
+            )
+
+        if eligible_drinks.empty:
+            m5.metric(t["cheapest_drink"], "—")
+        else:
+            cheapest_drink = eligible_drinks.loc[eligible_drinks["display_price"].idxmin()]
+            m5.metric(
+                t["cheapest_drink"],
+                f'{cheapest_drink["display_price"]:.2f} €',
+                help=f'{cheapest_drink["display_name"]} — {cheapest_drink["restaurant_display"]}',
             )
 
     tab_menu, tab_cheapest = st.tabs(
