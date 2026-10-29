@@ -82,7 +82,7 @@ TRANSLATIONS = {
         "tab_compare": "Võrdlus",
         "tab_cheapest": "Odavaimad",
         "cheapest_heading": "Kõige odavamad tooted kategooriate kaupa",
-        "cheapest_empty": "Kuvamiseks pole tooteid. ",
+        "cheapest_empty": "Kuvamiseks pole tooteid.",
         "name": "Toode",
         "variant": "Variant",
         "price": "Praegune hind",
@@ -397,11 +397,11 @@ def render_cheapest_by_category(df, language, t):
     # Suppress exact duplicate rows, but keep different portions, variants, prices,
     # or restaurants as separate offers.
     work["name_key"] = work["display_name"].fillna("").astype(str).map(
-        lambda value: re.sub(r"[^\\w]", "", value.casefold(), flags=re.UNICODE)
+        lambda value: re.sub(r"[^\w]", "", value.casefold(), flags=re.UNICODE)
     )
     work["restaurant_key"] = work["restaurant_display"].fillna("").astype(str).str.casefold()
     work["variant_key"] = work["price_variant"].map(
-        lambda value: re.sub(r"\\s+", " ", str(value or "").strip().casefold())
+        lambda value: re.sub(r"\s+", " ", str(value or "").strip().casefold())
     )
     work["price_key"] = work["display_price"].round(2)
     work = work.drop_duplicates(
