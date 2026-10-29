@@ -582,7 +582,7 @@ def category_emoji(*values):
         return "🌶️"
     if any(re.search(r"(?:суп|\bsoups?\b|supid)", key) for key in keys):
         return "🍲"
-    if any(re.search(r"(?:гарнир|lisand|\bsides?\b)", key) for key in keys):
+    if any(key in {"гарнир", "гарниры", "lisand", "lisandid", "side", "sides"} for key in keys):
         return "🍚"
     if any(key in {"другое", "другие", "muu", "muud", "other", "others"} for key in keys):
         return "➕"
