@@ -12,6 +12,7 @@ st.set_page_config(
 TRANSLATIONS = {
     "Русский": {
         "language": "Язык / Keel",
+        "refresh": "Обновить данные",
         "title": "Menuu Hinnad",
         "subtitle": "Сравнивайте цены в ресторанах и следите за их изменениями.",
         "connection_error": "Не удалось подключиться к Supabase. Проверь Secrets приложения в настройках Streamlit.",
@@ -54,6 +55,7 @@ TRANSLATIONS = {
     },
     "Eesti": {
         "language": "Keel / Язык",
+        "refresh": "Värskenda andmeid",
         "title": "Menuu Hinnad",
         "subtitle": "Võrdle restoranide hindu ja jälgi nende muutumist ajas.",
         "connection_error": "Supabase'iga ühendamine ebaõnnestus. Kontrolli Streamliti seadetes rakenduse Secrets väärtusi.",
@@ -108,7 +110,7 @@ def get_supabase_client():
     return create_client(url, key)
 
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=30)
 def load_table(table_name):
     """Read rows in pages so menus larger than the API default limit are included."""
     client = get_supabase_client()
@@ -148,6 +150,20 @@ def first_value(row, columns, default=None):
     return default
 
 
+def normalize_display_category(value, language):
+    """Hide the descriptive text following the Hesburger breakfast heading."""
+    value = nonempty(value)
+    if value is None:
+        return "Muu" if language == "Eesti" else "Другое"
+
+    # Resilient display normalization, even if an old cached/database value
+    # still contains the full heading "HOMMIKUPALA igal hommikul ...".
+    if language == "Eesti" and value.casefold().startswith("hommikupala"):
+        return "Hommikupala"
+
+    return value
+
+
 def prepare_dishes(source, language):
     df = source.copy()
     if df.empty:
@@ -177,7 +193,9 @@ def prepare_dishes(source, language):
             axis=1,
         )
         df["display_category"] = df.apply(
-            lambda row: first_value(row, ["category_ru", "product_type"], "Другое"),
+            lambda row: normalize_display_category(
+                first_value(row, ["category_ru", "product_type"], "Другое"), language
+            ),
             axis=1,
         )
     else:
@@ -186,7 +204,9 @@ def prepare_dishes(source, language):
             axis=1,
         )
         df["display_category"] = df.apply(
-            lambda row: first_value(row, ["category_et", "product_type"], "Muu"),
+            lambda row: normalize_display_category(
+                first_value(row, ["category_et", "product_type"], "Muu"), language
+            ),
             axis=1,
         )
 
@@ -281,6 +301,10 @@ def main():
         key="interface_language",
     )
     t = get_text(language)
+
+    if st.sidebar.button(t["refresh"]):
+        load_table.clear()
+        st.rerun()
 
     st.title("🍽️ " + t["title"])
     st.caption(t["subtitle"])
