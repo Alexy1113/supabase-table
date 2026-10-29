@@ -24,7 +24,6 @@ TRANSLATIONS = {
         "restaurant": "Ресторан",
         "all": "Все",
         "category": "Категория",
-        "type": "Тип продукта",
         "sort": "Сортировка",
         "sort_low": "Сначала дешевле",
         "sort_high": "Сначала дороже",
@@ -52,7 +51,6 @@ TRANSLATIONS = {
         "price_up": "Дороже",
         "same": "Без изменения",
         "read_only": "Сайт работает в режиме просмотра: посетители могут читать меню, но не изменять цены.",
-        "all_types": "Все типы",
         "showing": "Показано",
         "of": "из",
         "minimum": "Минимум",
@@ -70,7 +68,6 @@ TRANSLATIONS = {
         "restaurant": "Restoran",
         "all": "Kõik",
         "category": "Kategooria",
-        "type": "Toote tüüp",
         "sort": "Sorteerimine",
         "sort_low": "Odavamad eespool",
         "sort_high": "Kallimad eespool",
@@ -98,7 +95,6 @@ TRANSLATIONS = {
         "price_up": "Kallim",
         "same": "Muutuseta",
         "read_only": "Veebileht on vaaterežiimis: külastajad saavad menüüd lugeda, kuid ei saa hindu muuta.",
-        "all_types": "Kõik tüübid",
         "showing": "Näidatakse",
         "of": "/",
         "minimum": "Miinimum",
@@ -539,13 +535,6 @@ def filter_dishes(df, t):
     selected_category = st.sidebar.selectbox(t["category"], categories)
     if selected_category != t["all"]:
         filtered = filtered[filtered["display_category"] == selected_category]
-
-    product_types = [t["all_types"]] + sorted(
-        filtered["product_type"].dropna().astype(str).unique().tolist()
-    )
-    selected_type = st.sidebar.selectbox(t["type"], product_types)
-    if selected_type != t["all_types"]:
-        filtered = filtered[filtered["product_type"].astype(str) == selected_type]
 
     if search:
         search_cols = ["display_name", "display_category", "restaurant_display", "product_type"]
