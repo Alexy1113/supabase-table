@@ -520,6 +520,148 @@ def render_cheapest_by_category(df, language, t):
 
 
 
+
+CATEGORY_EMOJIS = {
+    "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
+    "sides": "🍟", "sauces": "🫙", "syrups": "🍯", "desserts": "🍰",
+    "drinks": "🥤", "breakfast": "🍳", "campaigns": "🏷️", "other": "🍽️",
+    "ice_cream_shakes": "🥤", "sets": "🍱", "dumplings": "🥟", "sashimi": "🍣",
+    "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣",
+    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍜", "bowls": "🥣",
+    "noodles": "🍜", "main_courses": "🍛",
+}
+
+
+def format_price(value, language):
+    try:
+        number = f"{float(value):.2f}"
+        if language == "Русский":
+            number = number.replace(".", ",")
+        return f"{number} €"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def render_price_cards(df, language, t):
+    """Responsive, theme-aware menu cards used on both the menu and comparison tabs."""
+    if df.empty:
+        st.info(t["no_results"])
+        return
+
+    st.markdown(
+        """
+        <style>
+        .price-card-list { display: flex; flex-direction: column; gap: .55rem; }
+        .price-card {
+            display: grid;
+            grid-template-columns: 2.6rem minmax(0, 1fr) auto auto;
+            align-items: center;
+            gap: .8rem;
+            padding: .85rem 1rem;
+            border: 1px solid rgba(128, 128, 128, .24);
+            border-radius: 1rem;
+            background: rgba(128, 128, 128, .045);
+            color: inherit;
+        }
+        .price-card-icon {
+            width: 2.45rem; height: 2.45rem;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: .8rem;
+            background: rgba(128, 128, 128, .12);
+            font-size: 1.45rem;
+        }
+        .price-card-info { min-width: 0; }
+        .price-card-name {
+            font-weight: 650; line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .price-card-restaurant {
+            margin-top: .2rem; font-size: .86rem; opacity: .72;
+            overflow-wrap: anywhere;
+        }
+        .price-card-variant {
+            margin-top: .15rem; font-size: .8rem; opacity: .65;
+        }
+        .price-card-current {
+            font-size: 1.08rem; font-weight: 800;
+            white-space: nowrap; font-variant-numeric: tabular-nums;
+        }
+        .price-card-change { margin-left: .22rem; font-size: .95rem; font-weight: 800; }
+        .price-card-up { color: #dc4545; }
+        .price-card-down { color: #159957; }
+        .price-card-old {
+            color: inherit; opacity: .58; text-decoration: line-through;
+            white-space: nowrap; font-size: .9rem; font-variant-numeric: tabular-nums;
+        }
+        @media (max-width: 560px) {
+            .price-card {
+                grid-template-columns: 2.1rem minmax(0, 1fr) auto;
+                gap: .55rem; padding: .7rem .65rem; border-radius: .85rem;
+            }
+            .price-card-icon {
+                grid-column: 1; grid-row: 1 / span 2;
+                width: 2rem; height: 2rem; font-size: 1.2rem;
+            }
+            .price-card-info { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+            .price-card-current { grid-column: 3; grid-row: 1; font-size: .98rem; align-self: end; }
+            .price-card-old { grid-column: 3; grid-row: 2; justify-self: end; font-size: .8rem; align-self: start; }
+            .price-card-restaurant { font-size: .8rem; }
+            .price-card-variant { font-size: .75rem; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cards = ['<div class="price-card-list">']
+    for _, row in df.iterrows():
+        name = html.escape(str(row.get("display_name", "—")))
+        restaurant = html.escape(str(row.get("restaurant_display", "—")))
+        product_type = nonempty(row.get("product_type")) or "other"
+        emoji = CATEGORY_EMOJIS.get(product_type.casefold(), "🍽️")
+        variant = normalize_display_variant(row.get("price_variant"), language)
+        variant_html = (
+            f'<div class="price-card-variant">{html.escape(variant)}</div>'
+            if variant and variant != "—" else ""
+        )
+        current_price = row.get("display_price")
+        old_price = row.get("display_old_price")
+        delta = row.get("display_delta")
+        try:
+            delta_value = float(delta)
+            if pd.isna(delta_value):
+                delta_value = 0.0
+        except (TypeError, ValueError):
+            delta_value = 0.0
+        if delta_value == 0 and pd.notna(old_price):
+            try:
+                delta_value = float(current_price) - float(old_price)
+            except (TypeError, ValueError):
+                delta_value = 0.0
+
+        change_html = ""
+        if delta_value > 0:
+            change_html = '<span class="price-card-change price-card-up" aria-label="price increased">↑</span>'
+        elif delta_value < 0:
+            change_html = '<span class="price-card-change price-card-down" aria-label="price decreased">↓</span>'
+
+        old_html = ""
+        if pd.notna(old_price) and float(old_price) > 0:
+            old_html = f'<div class="price-card-old">{html.escape(format_price(old_price, language))}</div>'
+
+        cards.append(
+            '<div class="price-card">'
+            f'<div class="price-card-icon" aria-hidden="true">{emoji}</div>'
+            f'<div class="price-card-info"><div class="price-card-name">{name}</div>'
+            f'<div class="price-card-restaurant">{restaurant}</div>{variant_html}</div>'
+            f'<div class="price-card-current">{html.escape(format_price(current_price, language))}{change_html}</div>'
+            f'{old_html}'
+            '</div>'
+        )
+    cards.append("</div>")
+    st.markdown("".join(cards), unsafe_allow_html=True)
+
+
 def filter_dishes(df, t):
     st.sidebar.header(t["filters"])
     search = st.sidebar.text_input(t["search"], key="dish_search").strip().casefold()
@@ -627,18 +769,8 @@ def main():
             else:
                 display_df = filtered.sort_values("display_name", key=lambda s: s.str.casefold())
 
-            table = make_display_table(display_df, language, t)
-            st.caption(f'{t["showing"]} {len(table)} {t["of"]} {len(dishes)}')
-            st.dataframe(
-                table,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    t["price"]: st.column_config.NumberColumn(t["price"], format="€ %.2f"),
-                    t["old_price"]: st.column_config.NumberColumn(t["old_price"], format="€ %.2f"),
-                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+.2f"),
-                },
-            )
+            st.caption(f'{t["showing"]} {len(display_df)} {t["of"]} {len(dishes)}')
+            render_price_cards(display_df, language, t)
 
     with tab_compare:
         st.subheader(t["compare_heading"])
@@ -653,17 +785,7 @@ def main():
             st.info(t["no_results"])
         else:
             compare_df = compare_df.sort_values("display_price", ascending=True)
-            table = make_display_table(compare_df, language, t)
-            st.dataframe(
-                table,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    t["price"]: st.column_config.NumberColumn(t["price"], format="€ %.2f"),
-                    t["old_price"]: st.column_config.NumberColumn(t["old_price"], format="€ %.2f"),
-                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+.2f"),
-                },
-            )
+            render_price_cards(compare_df, language, t)
             cheapest_price = compare_df["display_price"].min()
             lowest = compare_df[compare_df["display_price"] == cheapest_price]
             lowest_names = ", ".join(
