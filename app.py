@@ -34,6 +34,7 @@ TRANSLATIONS = {
         "tab_compare": "Сравнение",
         "tab_history": "История цены",
         "name": "Блюдо / продукт",
+        "variant": "Вариант",
         "price": "Текущая цена",
         "old_price": "Предыдущая цена",
         "delta": "Изменение",
@@ -86,6 +87,7 @@ TRANSLATIONS = {
         "tab_compare": "Võrdlus",
         "tab_history": "Hinna ajalugu",
         "name": "Toode",
+        "variant": "Variant",
         "price": "Praegune hind",
         "old_price": "Eelmine hind",
         "delta": "Muutus",
@@ -230,6 +232,8 @@ def prepare_dishes(source, language):
 
     if "product_type" not in df.columns:
         df["product_type"] = None
+    if "price_variant" not in df.columns:
+        df["price_variant"] = None
 
     return df[df["display_price"].notna() & (df["display_price"] > 0)].copy()
 
@@ -249,6 +253,7 @@ def make_display_table(df, language, t):
         t["restaurant"]: df["restaurant_display"],
         t["category"]: df["display_category"],
         t["name"]: df["display_name"],
+        t["variant"]: df["price_variant"].fillna("—").astype(str),
         t["price"]: df["display_price"],
         t["old_price"]: df["display_old_price"],
         t["delta"]: df["display_delta"],
