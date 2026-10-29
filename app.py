@@ -328,19 +328,24 @@ def main():
     filtered = filter_dishes(dishes, t)
 
     total_items = len(filtered)
-    total_restaurants = filtered["restaurant_display"].nunique()
-    price_changes = int((filtered["display_delta"].fillna(0) != 0).sum())
-    cheapest = filtered.loc[filtered["display_price"].idxmin()]
-
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
-    m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
-    m3.metric(t["changes"], f"{price_changes:,}".replace(",", " "))
-    m4.metric(
-        t["cheapest"],
-        f'{cheapest["display_price"]:.2f} €',
-        help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
-    )
+    if filtered.empty:
+        m1.metric(t["items"], "0")
+        m2.metric(t["restaurants"], "0")
+        m3.metric(t["changes"], "0")
+        m4.metric(t["cheapest"], "—")
+    else:
+        total_restaurants = filtered["restaurant_display"].nunique()
+        price_changes = int((filtered["display_delta"].fillna(0) != 0).sum())
+        cheapest = filtered.loc[filtered["display_price"].idxmin()]
+        m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
+        m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
+        m3.metric(t["changes"], f"{price_changes:,}".replace(",", " "))
+        m4.metric(
+            t["cheapest"],
+            f'{cheapest["display_price"]:.2f} €',
+            help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
+        )
 
     tab_menu, tab_compare, tab_history = st.tabs(
         [t["tab_menu"], t["tab_compare"], t["tab_history"]]
@@ -371,7 +376,7 @@ def main():
                 column_config={
                     t["price"]: st.column_config.NumberColumn(t["price"], format="€ %.2f"),
                     t["old_price"]: st.column_config.NumberColumn(t["old_price"], format="€ %.2f"),
-                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+,.2f"),
+                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+.2f"),
                 },
             )
 
@@ -396,7 +401,7 @@ def main():
                 column_config={
                     t["price"]: st.column_config.NumberColumn(t["price"], format="€ %.2f"),
                     t["old_price"]: st.column_config.NumberColumn(t["old_price"], format="€ %.2f"),
-                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+,.2f"),
+                    t["delta"]: st.column_config.NumberColumn(t["delta"], format="€ %+.2f"),
                 },
             )
             cheapest_price = compare_df["display_price"].min()
