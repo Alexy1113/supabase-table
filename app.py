@@ -12,18 +12,18 @@ def get_supabase_client():
     key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
-# Загрузка данных с кэшированием на 5 минут
-@st.cache_data(ttl=300)
+# Загрузка данных с кэшированием на 1 минуту для быстрой проверки
+@st.cache_data(ttl=60)
 def load_data():
     supabase = get_supabase_client()
     response = supabase.table("dishes").select("*").execute()
     df = pd.DataFrame(response.data)
     
-    # Извлекаем название ресторана из dish_code (берем текст до первого двоеточия)
+    # Извлекаем название ресторана из dish_code (текст до первого двоеточия)
     if 'dish_code' in df.columns:
-        df['restaurant'] = df['dish_code'].apply(lambda x: str(x).split(':')[0].capitalize() if pd.notna(x) else "Unknown")
+        df['restaurant'] = df['dish_code'].apply(lambda x: str(x).split(':')[0].upper() if pd.notna(x) else "UNKNOWN")
     else:
-        df['restaurant'] = "Hesburger"
+        df['restaurant'] = "HESBURGER"
         
     return df
 
@@ -71,7 +71,7 @@ try:
             "diff": "Vahe / Variant"
         }
 
-    # Подстраховка на случай, если старой цены в базе физически нет
+    # Подстраховка для старой цены
     if 'old_price' not in working_df.columns:
         working_df['old_price'] = "-"
 
@@ -102,8 +102,10 @@ try:
     # --- ВЫВОД ТАБЛИЦЫ ---
     st.write("")
     
-    # Берем готовые данные из price_variant вместо математического расчета
-    final_df = working_df[["restaurant", "display_category", "display_name", "price", "old_price", "price_variant"]]
+    # Проверяем наличие колонки price_variant в базе данных
+    diff_col = 'price_variant' if 'price_variant' in working_df.columns else working_df.columns[0]
+    
+    final_df = working_df[["restaurant", "display_category", "display_name", "price", "old_price", diff_col]]
     
     st.dataframe(
         final_df,
@@ -115,10 +117,10 @@ try:
             "display_name": labels["name"],
             "price": st.column_config.NumberColumn(labels["price"], format="%.2f"),
             "old_price": labels["old_price"],
-            "price_variant": labels["diff"]
+            lk: labels["diff"] for lk in [diff_col]
         }
     )
 
 except Exception as e:
-    st.error("Ошибка отображения данных. Проверьте названия колонок в Supabase.")
+    st.error("Произошла ошибка сборки интерфейса.")
     st.caption(f"Техническая информация: {str(e)}")
