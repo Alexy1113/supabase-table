@@ -307,6 +307,17 @@ def prepare_dishes(source, language):
         if language == "Русский":
             df.loc[sauces_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
 
+    # The scraped Hesburger row can have "Kastmed" as its item name even when
+    # its category columns do not contain that label. Treat that row as sauces.
+    hesburger_kastmed_item = (
+        df["restaurant_display"].fillna("").astype(str).str.contains(
+            r"hesburger", case=False, regex=True, na=False
+        )
+        & df["display_name"].fillna("").astype(str).str.strip().str.casefold().eq("kastmed")
+    )
+    df.loc[hesburger_kastmed_item, "product_type"] = "sauces"
+    df.loc[hesburger_kastmed_item, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
+
     # Correct a few known Hesburger parser classifications using the item names
     # in both languages, so the result is stable in either interface language.
     name_columns = [column for column in ("dish_name_ru", "dish_name_et", "dish_name") if column in df.columns]
