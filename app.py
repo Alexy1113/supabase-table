@@ -523,12 +523,12 @@ def render_cheapest_by_category(df, language, t):
 
 CATEGORY_EMOJIS = {
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
-    "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
-    "drinks": "🥤", "alcoholic_drinks": "🍷", "breakfast": "🍳", "campaigns": "🏷️",
-    "other": "➕", "ice_cream_shakes": "🥤", "sets": "📦", "dumplings": "🥟",
-    "sashimi": "🍣", "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣",
-    "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍲",
-    "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
+    "sides": "🍟", "sauces": "🫙", "syrups": "🍯", "desserts": "🍰",
+    "drinks": "🥤", "breakfast": "🍳", "campaigns": "🏷️", "other": "🍽️",
+    "ice_cream_shakes": "🥤", "sets": "🍱", "dumplings": "🥟", "sashimi": "🍣",
+    "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣",
+    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍜", "bowls": "🥣",
+    "noodles": "🍜", "main_courses": "🍛",
 }
 
 
