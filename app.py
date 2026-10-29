@@ -523,12 +523,12 @@ def render_cheapest_by_category(df, language, t):
 
 CATEGORY_EMOJIS = {
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
-    "sides": "🍟", "sauces": "🫙", "syrups": "🍯", "desserts": "🍰",
-    "drinks": "🥤", "breakfast": "🍳", "campaigns": "🏷️", "other": "🍽️",
-    "ice_cream_shakes": "🥤", "sets": "🍱", "dumplings": "🥟", "sashimi": "🍣",
-    "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣",
-    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍜", "bowls": "🥣",
-    "noodles": "🍜", "main_courses": "🍛",
+    "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
+    "drinks": "🥤", "alcoholic_drinks": "🍷", "breakfast": "🍳", "campaigns": "🏷️",
+    "other": "➕", "ice_cream_shakes": "🥤", "sets": "📦", "dumplings": "🥟",
+    "sashimi": "🍣", "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣",
+    "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍲",
+    "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
 }
 
 
@@ -673,31 +673,38 @@ def filter_dishes(df, t):
     if selected_restaurant != t["all"]:
         filtered = filtered[filtered["restaurant_display"] == selected_restaurant]
 
-    categories = [t["all"]] + sorted(filtered["display_category"].dropna().astype(str).unique().tolist())
+    category_values = filtered["display_category"].dropna().astype(str).unique().tolist()
+    other_names = {"другое", "muu", "other"}
+    category_values.sort(key=lambda category: (
+        category.casefold() in other_names,
+        category.casefold(),
+    ))
+    categories = [t["all"]] + category_values
     category_emojis = {
         "бургеры": "🍔", "бургер": "🍔", "burgerid": "🍔", "burger": "🍔",
         "тортильи": "🌯", "tortillad": "🌯", "tortilla": "🌯",
         "салаты": "🥗", "salatid": "🥗", "salat": "🥗",
         "закуски": "🥟", "suupisted": "🥟", "appetizers": "🥟",
-        "гарниры": "🍟", "lisandid": "🍟", "sides": "🍟",
-        "соусы и добавки": "🫙", "kastmed ja lisandid": "🫙", "sauces": "🫙",
+        "гарниры": "🍚", "lisandid": "🍚", "sides": "🍚",
+        "соусы и добавки": "🌶️", "соусы": "🌶️", "kastmed ja lisandid": "🌶️", "kastmed": "🌶️", "sauces": "🌶️",
         "сиропы и добавки": "🍯", "siirupid ja lisandid": "🍯", "syrups": "🍯",
         "десерты": "🍰", "magustoidud": "🍰", "desserts": "🍰",
         "напитки": "🥤", "joogid": "🥤", "drinks": "🥤",
+        "алкогольные напитки": "🍷", "алкоголь": "🍷", "alkohoolsed joogid": "🍷", "alkoholjoogid": "🍷", "alcoholic drinks": "🍷", "alcoholic_drinks": "🍷",
         "завтраки": "🍳", "hommikusöök": "🍳", "breakfast": "🍳",
         "акции": "🏷️", "kampaaniad": "🏷️", "campaigns": "🏷️",
         "молочные коктейли": "🥤", "jäätisekokteilid": "🥤", "ice_cream_shakes": "🥤",
-        "наборы и комбо": "🍱", "komplektid": "🍱", "sets": "🍱",
+        "наборы и комбо": "📦", "наборы": "📦", "komplektid": "📦", "sets": "📦",
         "пельмени и дим-сам": "🥟", "pelmeenid ja dim sum": "🥟", "dumplings": "🥟",
         "сашими": "🍣", "sashimi": "🍣", "нигири": "🍣", "nigiri": "🍣",
         "гунканы": "🍣", "gunkan": "🍣", "инари": "🍣", "inari": "🍣",
         "хосомаки": "🍣", "hosomaki": "🍣", "темпура": "🍤", "tempura": "🍤",
         "роллы и маки": "🍣", "sushirullid": "🍣", "sushi_rolls": "🍣",
-        "супы": "🍜", "supid": "🍜", "soups": "🍜",
+        "супы": "🍲", "supid": "🍲", "soups": "🍲",
         "боулы": "🥣", "bow'id": "🥣", "bowls": "🥣",
         "лапша": "🍜", "nuudlid": "🍜", "noodles": "🍜",
         "основные блюда": "🍛", "pearoad": "🍛", "main_courses": "🍛",
-        "другое": "🍽️", "muu": "🍽️", "other": "🍽️",
+        "другое": "➕", "muu": "➕", "other": "➕",
     }
     category_options = {
         t["all"]: t["all"],
