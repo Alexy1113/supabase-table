@@ -863,15 +863,28 @@ def main():
     else:
         total_restaurants = filtered["restaurant_display"].nunique()
         price_changes = int((filtered["display_delta"].fillna(0) != 0).sum())
-        cheapest = filtered.loc[filtered["display_price"].idxmin()]
+        # Exclude non-meal add-on categories from the lowest-price headline.
+        excluded_categories = {
+            "другое", "другие", "muu", "muud", "other", "others",
+            "напитки", "joogid", "drinks",
+            "соусы", "соусы и добавки", "kastmed", "kastmed ja lisandid", "sauces",
+            "сиропы и добавки", "siirupid ja lisandid", "syrups",
+        }
+        eligible = filtered[
+            ~filtered["display_category"].fillna("").astype(str).str.strip().str.casefold().isin(excluded_categories)
+        ]
         m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
         m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
         m3.metric(t["changes"], f"{price_changes:,}".replace(",", " "))
-        m4.metric(
-            t["cheapest"],
-            f'{cheapest["display_price"]:.2f} €',
-            help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
-        )
+        if eligible.empty:
+            m4.metric(t["cheapest"], "—")
+        else:
+            cheapest = eligible.loc[eligible["display_price"].idxmin()]
+            m4.metric(
+                t["cheapest"],
+                f'{cheapest["display_price"]:.2f} €',
+                help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
+            )
 
     tab_menu, tab_cheapest = st.tabs(
         [t["tab_menu"], t["tab_cheapest"]]
