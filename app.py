@@ -251,7 +251,7 @@ def make_display_table(df, language, t):
         t["restaurant"]: df["restaurant_display"],
         t["category"]: df["display_category"],
         t["name"]: df["display_name"],
-        t["variant"]: df["price_variant"].fillna("—").astype(str),
+        t["variant"]: df["price_variant"].map(lambda value: nonempty(value) or "—"),
         t["price"]: df["display_price"],
         t["old_price"]: df["display_old_price"],
         t["delta"]: df["display_delta"],
