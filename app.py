@@ -843,7 +843,39 @@ def main():
         load_table.clear()
         st.rerun()
 
-    st.title("🍽️ " + t["title"])
+    # Inline brand logo keeps the full SVG sharp at every screen size.
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:16px; margin:0.25rem 0 0.5rem 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 170"
+               width="92" height="92" role="img" aria-label="Menüü Hinnad Jõhvi logo"
+               style="flex:0 0 92px;">
+            <g transform="scale(0.92)" transform-origin="85 85">
+              <circle cx="85" cy="85" r="82" fill="none" stroke="#000000" stroke-width="3"/>
+              <circle cx="85" cy="85" r="74" fill="none" stroke="#000000" stroke-width="1"/>
+              <rect x="62" y="30" width="46" height="48" rx="4" fill="none" stroke="#000000" stroke-width="2.5"/>
+              <path d="M74 30 v-4 h22 v4 Z" fill="#000000"/>
+              <rect x="78" y="23" width="14" height="3" rx="1" fill="#000000"/>
+              <text x="82" y="63" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+                    font-size="24" font-weight="bold" fill="#000000" text-anchor="middle">€</text>
+              <path d="M94 58 l8 8 m0 0 h-6 m6 0 v-6" fill="none" stroke="#000000"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="35" y1="88" x2="135" y2="88" stroke="#000000" stroke-width="2"/>
+              <text x="85" y="110" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+                    font-size="14" font-weight="900" fill="#000000" letter-spacing="1"
+                    text-anchor="middle">MENÜÜ HINNAD</text>
+              <text x="85" y="130" font-family="Segoe UI, Helvetica, Arial, sans-serif"
+                    font-size="14" font-weight="900" fill="#000000" letter-spacing="4"
+                    text-anchor="middle">JÕHVI</text>
+            </g>
+          </svg>
+          <h1 style="margin:0; padding:0; line-height:1.15; font-size:2.35rem;">
+            {html.escape(t["title"])}
+          </h1>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.caption(t["subtitle"])
 
     try:
