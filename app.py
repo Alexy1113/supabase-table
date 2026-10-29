@@ -623,7 +623,7 @@ def category_emoji(*values):
     # Match specific categories first; display labels may differ from product_type.
     if any(re.search(r"(?:алкогол|alkoh|alcohol)", key) for key in keys):
         return "🍷"
-    if any(re.search(r"(?:набор|комплект|комбо|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
+    if any(re.search(r"(?:набор|комплект|комбо|сеты?|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
         return "📦"
     if any(re.search(r"(?:ролл|\brolls?\b|sushirull|\brullid?\b|maki)", key) for key in keys):
         return "🍣"
@@ -885,10 +885,13 @@ def main():
             "другое", "другие", "muu", "muud", "other", "others",
             "напитки", "joogid", "drinks",
             "соусы", "соусы и добавки", "kastmed", "kastmed ja lisandid", "sauces",
-            "сиропы и добавки", "siirupid ja lisandid", "syrups",
+            "сиропы", "сиропы и добавки", "siirupid ja lisandid", "syrups",
         }
+        category_values = filtered["display_category"].fillna("").astype(str).str.strip().str.casefold()
+        product_values = filtered["product_type"].fillna("").astype(str).str.strip().str.casefold()
         eligible = filtered[
-            ~filtered["display_category"].fillna("").astype(str).str.strip().str.casefold().isin(excluded_categories)
+            ~category_values.isin(excluded_categories)
+            & ~product_values.isin(excluded_categories | {"sauce", "syrup"})
         ]
         m1.metric(t["items"], f"{total_items:,}".replace(",", " "))
         m2.metric(t["restaurants"], f"{total_restaurants:,}".replace(",", " "))
