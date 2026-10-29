@@ -851,6 +851,7 @@ def main():
                width="92" height="92" role="img" aria-label="Menüü Hinnad Jõhvi logo"
                style="flex:0 0 92px;">
             <g transform="scale(0.92)" transform-origin="85 85">
+              <circle cx="85" cy="85" r="81" fill="#ffffff"/>
               <circle cx="85" cy="85" r="82" fill="none" stroke="#000000" stroke-width="3"/>
               <circle cx="85" cy="85" r="74" fill="none" stroke="#000000" stroke-width="1"/>
               <rect x="62" y="30" width="46" height="48" rx="4" fill="none" stroke="#000000" stroke-width="2.5"/>
