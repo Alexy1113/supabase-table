@@ -425,7 +425,7 @@ def render_cheapest_by_category(df, language, t):
         label = localized_product_type(category_key, language)
         category_groups.append((label, category_key, group))
 
-    category_groups.sort(key=lambda item: item[0].casefold())
+    category_groups.sort(key=lambda item: (item[1] in {"other", "другое", "другие", "muu", "muud", "others"}, item[0].casefold()))
 
     st.subheader(t["cheapest_heading"])
     st.markdown(
@@ -492,7 +492,8 @@ def render_cheapest_by_category(df, language, t):
             key=lambda series: series.astype(str).str.casefold(),
         )
 
-        safe_label = html.escape(str(label))
+        emoji = CATEGORY_EMOJIS.get(str(category_key).casefold(), "🍽️")
+        safe_label = html.escape(f"{emoji} {label}")
         st.markdown(
             f'<div class="cheapest-category-title">{safe_label}</div>',
             unsafe_allow_html=True,
@@ -523,11 +524,12 @@ def render_cheapest_by_category(df, language, t):
 
 CATEGORY_EMOJIS = {
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
-    "sides": "🍟", "sauces": "🫙", "syrups": "🍯", "desserts": "🍰",
-    "drinks": "🥤", "breakfast": "🍳", "campaigns": "🏷️", "other": "🍽️",
-    "ice_cream_shakes": "🥤", "sets": "🍱", "dumplings": "🥟", "sashimi": "🍣",
+    "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
+    "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷", "alcohol": "🍷",
+    "breakfast": "🍳", "campaigns": "🏷️", "other": "➕",
+    "ice_cream_shakes": "🥤", "sets": "📦", "dumplings": "🥟", "sashimi": "🍣",
     "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣",
-    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍜", "bowls": "🥣",
+    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍲", "bowls": "🥣",
     "noodles": "🍜", "main_courses": "🍛",
 }
 
@@ -674,7 +676,7 @@ def filter_dishes(df, t):
         filtered = filtered[filtered["restaurant_display"] == selected_restaurant]
 
     category_values = filtered["display_category"].dropna().astype(str).unique().tolist()
-    other_names = {"другое", "muu", "other"}
+    other_names = {"другое", "другие", "muu", "muud", "other", "others"}
     category_values.sort(key=lambda category: (
         category.casefold() in other_names,
         category.casefold(),
@@ -685,16 +687,16 @@ def filter_dishes(df, t):
         "тортильи": "🌯", "tortillad": "🌯", "tortilla": "🌯",
         "салаты": "🥗", "salatid": "🥗", "salat": "🥗",
         "закуски": "🥟", "suupisted": "🥟", "appetizers": "🥟",
-        "гарниры": "🍚", "lisandid": "🍚", "sides": "🍚",
+        "гарниры": "🍚", "гарнир": "🍚", "lisandid": "🍚", "sides": "🍚",
         "соусы и добавки": "🌶️", "соусы": "🌶️", "kastmed ja lisandid": "🌶️", "kastmed": "🌶️", "sauces": "🌶️",
         "сиропы и добавки": "🍯", "siirupid ja lisandid": "🍯", "syrups": "🍯",
         "десерты": "🍰", "magustoidud": "🍰", "desserts": "🍰",
         "напитки": "🥤", "joogid": "🥤", "drinks": "🥤",
-        "алкогольные напитки": "🍽️", "алкоголь": "🍽️", "alkohoolsed joogid": "🍽️", "alkoholjoogid": "🍽️", "alcoholic drinks": "🍽️", "alcoholic_drinks": "🍽️",
+        "алкогольные напитки": "🍷", "алкоголь": "🍷", "alkohoolsed joogid": "🍷", "alkoholjoogid": "🍷", "alcoholic drinks": "🍷", "alcoholic_drinks": "🍷",
         "завтраки": "🍳", "hommikusöök": "🍳", "breakfast": "🍳",
         "акции": "🏷️", "kampaaniad": "🏷️", "campaigns": "🏷️",
         "молочные коктейли": "🥤", "jäätisekokteilid": "🥤", "ice_cream_shakes": "🥤",
-        "наборы и комбо": "🍽️", "наборы": "🍽️", "komplektid": "🍽️", "sets": "🍽️",
+        "наборы и комбо": "📦", "наборы": "📦", "komplektid": "📦", "sets": "📦",
         "пельмени и дим-сам": "🥟", "pelmeenid ja dim sum": "🥟", "dumplings": "🥟",
         "сашими": "🍣", "sashimi": "🍣", "нигири": "🍣", "nigiri": "🍣",
         "гунканы": "🍣", "gunkan": "🍣", "инари": "🍣", "inari": "🍣",
@@ -704,7 +706,7 @@ def filter_dishes(df, t):
         "боулы": "🥣", "bow'id": "🥣", "bowls": "🥣",
         "лапша": "🍜", "nuudlid": "🍜", "noodles": "🍜",
         "основные блюда": "🍛", "pearoad": "🍛", "main_courses": "🍛",
-        "другое": "➕", "muu": "➕", "other": "➕",
+        "другое": "➕", "другие": "➕", "muu": "➕", "muud": "➕", "other": "➕", "others": "➕",
     }
     category_options = {
         t["all"]: t["all"],
