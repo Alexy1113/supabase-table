@@ -34,6 +34,9 @@ TRANSLATIONS = {
         "cheapest": "Самая низкая цена в выборке",
         "tab_menu": "Меню и цены",
         "tab_compare": "Сравнение",
+        "tab_cheapest": "Самые дешёвые",
+        "cheapest_heading": "Самые дешёвые товары по категориям",
+        "cheapest_empty": "Нет товаров для отображения.",
         "name": "Блюдо / продукт",
         "variant": "Вариант",
         "price": "Текущая цена",
@@ -77,6 +80,9 @@ TRANSLATIONS = {
         "cheapest": "Valiku madalaim hind",
         "tab_menu": "Menüü ja hinnad",
         "tab_compare": "Võrdlus",
+        "tab_cheapest": "Odavaimad",
+        "cheapest_heading": "Kõige odavamad tooted kategooriate kaupa",
+        "cheapest_empty": "Kuvamiseks pole tooteid. ",
         "name": "Toode",
         "variant": "Variant",
         "price": "Praegune hind",
@@ -98,6 +104,64 @@ TRANSLATIONS = {
         "maximum": "Maksimum",
     },
 }
+
+PRODUCT_TYPE_LABELS = {
+    "Русский": {
+        "burgers": "Бургеры",
+        "tortillas": "Тортильи",
+        "salads": "Салаты",
+        "appetizers": "Закуски",
+        "sides": "Гарниры",
+        "sauces": "Соусы",
+        "desserts": "Десерты",
+        "drinks": "Напитки",
+        "breakfast": "Завтраки",
+        "campaigns": "Акции",
+        "other": "Другое",
+        "ice_cream_shakes": "Молочные коктейли",
+        "sets": "Наборы и комбо",
+        "dumplings": "Пельмени и дим-сам",
+        "sashimi": "Сашими",
+        "nigiri": "Нигири",
+        "gunkan": "Гунканы",
+        "inari": "Инари",
+        "hosomaki": "Хосомаки",
+        "tempura": "Темпура",
+        "sushi_rolls": "Роллы и маки",
+        "soups": "Супы",
+        "bowls": "Боулы",
+        "noodles": "Лапша",
+        "main_courses": "Основные блюда",
+    },
+    "Eesti": {
+        "burgers": "Burgerid",
+        "tortillas": "Tortillad",
+        "salads": "Salatid",
+        "appetizers": "Suupisted",
+        "sides": "Lisandid",
+        "sauces": "Kastmed",
+        "desserts": "Magustoidud",
+        "drinks": "Joogid",
+        "breakfast": "Hommikusöök",
+        "campaigns": "Kampaaniad",
+        "other": "Muu",
+        "ice_cream_shakes": "Jäätisekokteilid",
+        "sets": "Komplektid",
+        "dumplings": "Pelmeenid ja dim sum",
+        "sashimi": "Sashimi",
+        "nigiri": "Nigiri",
+        "gunkan": "Gunkan",
+        "inari": "Inari",
+        "hosomaki": "Hosomaki",
+        "tempura": "Tempura",
+        "sushi_rolls": "Sushirullid ja maki",
+        "soups": "Supid",
+        "bowls": "Bow'id",
+        "noodles": "Nuudlid",
+        "main_courses": "Pearoad",
+    },
+}
+
 
 
 def get_text(language):
@@ -302,6 +366,72 @@ def make_display_table(df, language, t):
     return result
 
 
+
+def localized_product_type(value, language):
+    key = nonempty(value)
+    if key is None:
+        key = "other"
+    key = key.casefold()
+    return PRODUCT_TYPE_LABELS.get(language, {}).get(key, key.replace("_", " ").capitalize())
+
+
+def render_cheapest_by_category(df, language, t):
+    """Show the cheapest item(s) in every shared product category across all restaurants."""
+    if df.empty:
+        st.info(t["cheapest_empty"])
+        return
+
+    work = df.copy()
+    if "product_type" not in work.columns:
+        work["product_type"] = "other"
+
+    work["category_key"] = (
+        work["product_type"]
+        .fillna("other")
+        .astype(str)
+        .str.strip()
+        .replace("", "other")
+        .str.casefold()
+    )
+
+    # Suppress exact duplicate rows, but keep different portions, variants, prices,
+    # or restaurants as separate offers.
+    work["name_key"] = work["display_name"].fillna("").astype(str).map(
+        lambda value: re.sub(r"[^\\w]", "", value.casefold(), flags=re.UNICODE)
+    )
+    work["restaurant_key"] = work["restaurant_display"].fillna("").astype(str).str.casefold()
+    work["variant_key"] = work["price_variant"].map(
+        lambda value: re.sub(r"\\s+", " ", str(value or "").strip().casefold())
+    )
+    work["price_key"] = work["display_price"].round(2)
+    work = work.drop_duplicates(
+        subset=["category_key", "name_key", "restaurant_key", "variant_key", "price_key"]
+    )
+
+    category_groups = []
+    for category_key, group in work.groupby("category_key", sort=False):
+        label = localized_product_type(category_key, language)
+        category_groups.append((label, category_key, group))
+
+    category_groups.sort(key=lambda item: item[0].casefold())
+
+    st.subheader(t["cheapest_heading"])
+    for label, category_key, group in category_groups:
+        lowest_price = round(float(group["display_price"].min()), 2)
+        winners = group[group["display_price"].round(2) == lowest_price].copy()
+        winners = winners.sort_values(
+            ["display_name", "restaurant_display"],
+            key=lambda series: series.astype(str).str.casefold(),
+        )
+
+        st.markdown(f"### {label}")
+        for _, row in winners.iterrows():
+            name = str(row["display_name"])
+            restaurant = str(row["restaurant_display"])
+            st.markdown(f"**{name}** · **{lowest_price:.2f} €** · {restaurant}")
+
+
+
 def filter_dishes(df, t):
     st.sidebar.header(t["filters"])
     search = st.sidebar.text_input(t["search"], key="dish_search").strip().casefold()
@@ -396,8 +526,8 @@ def main():
             help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
         )
 
-    tab_menu, tab_compare = st.tabs(
-        [t["tab_menu"], t["tab_compare"]]
+    tab_menu, tab_compare, tab_cheapest = st.tabs(
+        [t["tab_menu"], t["tab_compare"], t["tab_cheapest"]]
     )
 
     with tab_menu:
@@ -464,6 +594,10 @@ def main():
                  if language == "Русский"
                  else f'Leitud madalaim hind: {cheapest_price:.2f} € — {lowest_names}')
             )
+
+    with tab_cheapest:
+        # Deliberately use all dishes, not the filter-selected subset.
+        render_cheapest_by_category(dishes, language, t)
 
 
 if __name__ == "__main__":
