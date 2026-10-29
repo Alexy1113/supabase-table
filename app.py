@@ -674,7 +674,40 @@ def filter_dishes(df, t):
         filtered = filtered[filtered["restaurant_display"] == selected_restaurant]
 
     categories = [t["all"]] + sorted(filtered["display_category"].dropna().astype(str).unique().tolist())
-    selected_category = st.sidebar.selectbox(t["category"], categories)
+    category_emojis = {
+        "бургеры": "🍔", "бургер": "🍔", "burgerid": "🍔", "burger": "🍔",
+        "тортильи": "🌯", "tortillad": "🌯", "tortilla": "🌯",
+        "салаты": "🥗", "salatid": "🥗", "salat": "🥗",
+        "закуски": "🥟", "suupisted": "🥟", "appetizers": "🥟",
+        "гарниры": "🍟", "lisandid": "🍟", "sides": "🍟",
+        "соусы и добавки": "🫙", "kastmed ja lisandid": "🫙", "sauces": "🫙",
+        "сиропы и добавки": "🍯", "siirupid ja lisandid": "🍯", "syrups": "🍯",
+        "десерты": "🍰", "magustoidud": "🍰", "desserts": "🍰",
+        "напитки": "🥤", "joogid": "🥤", "drinks": "🥤",
+        "завтраки": "🍳", "hommikusöök": "🍳", "breakfast": "🍳",
+        "акции": "🏷️", "kampaaniad": "🏷️", "campaigns": "🏷️",
+        "молочные коктейли": "🥤", "jäätisekokteilid": "🥤", "ice_cream_shakes": "🥤",
+        "наборы и комбо": "🍱", "komplektid": "🍱", "sets": "🍱",
+        "пельмени и дим-сам": "🥟", "pelmeenid ja dim sum": "🥟", "dumplings": "🥟",
+        "сашими": "🍣", "sashimi": "🍣", "нигири": "🍣", "nigiri": "🍣",
+        "гунканы": "🍣", "gunkan": "🍣", "инари": "🍣", "inari": "🍣",
+        "хосомаки": "🍣", "hosomaki": "🍣", "темпура": "🍤", "tempura": "🍤",
+        "роллы и маки": "🍣", "sushirullid": "🍣", "sushi_rolls": "🍣",
+        "супы": "🍜", "supid": "🍜", "soups": "🍜",
+        "боулы": "🥣", "bow'id": "🥣", "bowls": "🥣",
+        "лапша": "🍜", "nuudlid": "🍜", "noodles": "🍜",
+        "основные блюда": "🍛", "pearoad": "🍛", "main_courses": "🍛",
+        "другое": "🍽️", "muu": "🍽️", "other": "🍽️",
+    }
+    category_options = {
+        t["all"]: t["all"],
+        **{
+            f'{category_emojis.get(category.casefold(), "🍽️")}  {category}': category
+            for category in categories if category != t["all"]
+        },
+    }
+    selected_category_label = st.sidebar.selectbox(t["category"], list(category_options))
+    selected_category = category_options[selected_category_label]
     if selected_category != t["all"]:
         filtered = filtered[filtered["display_category"] == selected_category]
 
@@ -749,8 +782,8 @@ def main():
             help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
         )
 
-    tab_menu, tab_compare, tab_cheapest = st.tabs(
-        [t["tab_menu"], t["tab_compare"], t["tab_cheapest"]]
+    tab_menu, tab_cheapest = st.tabs(
+        [t["tab_menu"], t["tab_cheapest"]]
     )
 
     with tab_menu:
@@ -771,32 +804,6 @@ def main():
 
             st.caption(f'{t["showing"]} {len(display_df)} {t["of"]} {len(dishes)}')
             render_price_cards(display_df, language, t)
-
-    with tab_compare:
-        st.subheader(t["compare_heading"])
-        st.write(t["compare_hint"])
-        query = st.text_input(t["compare_search"], key="compare_search").strip().casefold()
-        compare_df = dishes.copy()
-        if query:
-            compare_df = compare_df[
-                compare_df["display_name"].fillna("").astype(str).str.casefold().str.contains(query, regex=False)
-            ]
-        if compare_df.empty:
-            st.info(t["no_results"])
-        else:
-            compare_df = compare_df.sort_values("display_price", ascending=True)
-            render_price_cards(compare_df, language, t)
-            cheapest_price = compare_df["display_price"].min()
-            lowest = compare_df[compare_df["display_price"] == cheapest_price]
-            lowest_names = ", ".join(
-                f'{row["display_name"]} ({row["restaurant_display"]})'
-                for _, row in lowest.head(3).iterrows()
-            )
-            st.success(
-                (f'Низшая найденная цена: {cheapest_price:.2f} € — {lowest_names}'
-                 if language == "Русский"
-                 else f'Leitud madalaim hind: {cheapest_price:.2f} € — {lowest_names}')
-            )
 
     with tab_cheapest:
         # Deliberately use all dishes, not the filter-selected subset.
