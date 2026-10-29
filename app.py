@@ -352,8 +352,8 @@ def main():
             help=f'{cheapest["display_name"]} — {cheapest["restaurant_display"]}',
         )
 
-    tab_menu, tab_compare, tab_history = st.tabs(
-        [t["tab_menu"], t["tab_compare"], t["tab_history"]]
+    tab_menu, tab_compare = st.tabs(
+        [t["tab_menu"], t["tab_compare"]]
     )
 
     with tab_menu:
@@ -420,97 +420,6 @@ def main():
                  if language == "Русский"
                  else f'Leitud madalaim hind: {cheapest_price:.2f} € — {lowest_names}')
             )
-
-    with tab_history:
-        st.subheader(t["history_heading"])
-        selected_index = st.selectbox(
-            t["choose_item"],
-            options=dishes.index.tolist(),
-            format_func=lambda idx: (
-                f'{dishes.loc[idx, "display_name"]} — '
-                f'{dishes.loc[idx, "restaurant_display"]} '
-                f'({dishes.loc[idx, "display_price"]:.2f} €)'
-            ),
-            key="history_item",
-        )
-        selected = dishes.loc[selected_index]
-
-        price_col1, price_col2, price_col3 = st.columns(3)
-        price_col1.metric(t["current"], f'{selected["display_price"]:.2f} €')
-        if pd.notna(selected["display_old_price"]):
-            price_col2.metric(
-                t["previous"],
-                f'{selected["display_old_price"]:.2f} €',
-                delta=(
-                    f'{selected["display_delta"]:+.2f} €'
-                    if pd.notna(selected["display_delta"]) else None
-                ),
-            )
-        else:
-            price_col2.metric(t["previous"], "—")
-        price_col3.metric(
-            t["updated"],
-            localized_date(selected.get("last_updated"), language),
-        )
-
-        try:
-            history = load_table("price_history")
-            history_error = None
-        except Exception as exc:
-            history = pd.DataFrame()
-            history_error = str(exc)
-
-        if history_error:
-            st.warning(t["history_missing"])
-        elif history.empty:
-            st.info(t["history_empty"])
-        else:
-            selected_id = str(selected.get("id", ""))
-            selected_code = str(selected.get("dish_code", ""))
-            match = pd.Series(False, index=history.index)
-
-            if "dish_id" in history.columns and selected_id:
-                match = match | (history["dish_id"].astype(str) == selected_id)
-            if "dish_code" in history.columns and selected_code and selected_code != "None":
-                match = match | (history["dish_code"].astype(str) == selected_code)
-            if "restaurant_name" in history.columns:
-                match = match & (
-                    history["restaurant_name"].astype(str)
-                    == str(selected["restaurant_display"])
-                )
-
-            item_history = history[match].copy()
-            if not item_history.empty and {"recorded_at", "price"}.issubset(item_history.columns):
-                item_history["recorded_at"] = pd.to_datetime(
-                    item_history["recorded_at"], errors="coerce", utc=True
-                )
-                item_history["price"] = pd.to_numeric(item_history["price"], errors="coerce")
-                item_history = item_history.dropna(subset=["recorded_at", "price"]).sort_values("recorded_at")
-
-            if item_history.empty:
-                st.info(t["history_empty"])
-            else:
-                st.markdown(f"**{t['history_chart']}**")
-                chart_data = item_history.set_index("recorded_at")[["price"]].rename(
-                    columns={"price": t["history_price"]}
-                )
-                st.line_chart(chart_data, y=t["history_price"], use_container_width=True)
-                history_table = item_history[["recorded_at", "price"]].copy()
-                history_table["recorded_at"] = history_table["recorded_at"].map(
-                    lambda value: localized_date(value, language)
-                )
-                history_table.columns = [t["date"], t["history_price"]]
-                st.markdown(f"**{t['history_table']}**")
-                st.dataframe(
-                    history_table.sort_values(t["date"], ascending=False),
-                    hide_index=True,
-                    use_container_width=True,
-                    column_config={
-                        t["history_price"]: st.column_config.NumberColumn(
-                            t["history_price"], format="€ %.2f"
-                        )
-                    },
-                )
 
 
 if __name__ == "__main__":
