@@ -30,3 +30,27 @@ on public.price_history
 for select
 to anon, authenticated
 using (true);
+
+-- Seed one starting point for every existing product. This is the current
+-- known price at last_updated, not a reconstruction of older price changes.
+insert into public.price_history
+    (dish_id, restaurant_name, dish_code, dish_name, price, recorded_at)
+select
+    d.id::text,
+    d.restaurant_name,
+    d.dish_code,
+    d.dish_name,
+    d.current_price,
+    coalesce(d.last_updated, now())
+from public.dishes d
+where d.current_price is not null
+  and d.current_price > 0
+  and not exists (
+      select 1
+      from public.price_history h
+      where h.restaurant_name = d.restaurant_name
+        and (
+            (d.dish_code is not null and h.dish_code = d.dish_code)
+            or (d.dish_code is null and h.dish_id = d.id::text)
+        )
+  );
