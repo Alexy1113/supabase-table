@@ -602,7 +602,7 @@ def category_emoji(*values):
         keys.append(key)
 
     # Match specific categories first; display labels may differ from product_type.
-    if any(re.search(r"(?:алкогол|alkohol|alcohol)", key) for key in keys):
+    if any(re.search(r"(?:алкогол|alkoh|alcohol)", key) for key in keys):
         return "🍷"
     if any(re.search(r"(?:набор|комплект|комбо|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
         return "📦"
