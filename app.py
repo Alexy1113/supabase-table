@@ -5,7 +5,7 @@ import streamlit as st
 from supabase import create_client
 
 st.set_page_config(
-    page_title="Menuu Hinnad",
+    page_title="Menüü Hinnad",
     page_icon="🍽️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -15,7 +15,7 @@ TRANSLATIONS = {
     "Русский": {
         "language": "Язык / Keel",
         "refresh": "Обновить данные",
-        "title": "Menuu Hinnad",
+        "title": "Menüü Hinnad",
         "subtitle": "Сравнивайте цены в ресторанах и следите за их изменениями.",
         "connection_error": "Не удалось подключиться к Supabase. Проверь Secrets приложения в настройках Streamlit.",
         "empty": "В Supabase пока нет блюд для отображения.",
@@ -61,7 +61,7 @@ TRANSLATIONS = {
     "Eesti": {
         "language": "Keel / Язык",
         "refresh": "Värskenda andmeid",
-        "title": "Menuu Hinnad",
+        "title": "Menüü Hinnad",
         "subtitle": "Võrdle restoranide hindu ja jälgi nende muutumist ajas.",
         "connection_error": "Supabase'iga ühendamine ebaõnnestus. Kontrolli Streamliti seadetes rakenduse Secrets väärtusi.",
         "empty": "Supabase'is pole praegu kuvatavaid tooteid.",
