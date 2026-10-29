@@ -246,12 +246,45 @@ def localized_date(value, language):
         return str(value)
 
 
+def normalize_display_variant(value, language):
+    """Show readable, localized labels instead of parser-internal variant names."""
+    value = nonempty(value)
+    if value is None:
+        return "—"
+
+    key = " ".join(value.split()).casefold()
+    labels = {
+        "burger": {
+            "Русский": "Только бургер",
+            "Eesti": "Burger üksi",
+        },
+        "eine": {
+            "Русский": "Комбо",
+            "Eesti": "Eine",
+        },
+        "suur eine": {
+            "Русский": "Большое комбо",
+            "Eesti": "Suur eine",
+        },
+        "single": {
+            "Русский": "—",
+            "Eesti": "—",
+        },
+        "with topping": {
+            "Русский": "С топпингом",
+            "Eesti": "Lisandiga",
+        },
+    }
+
+    return labels.get(key, {}).get(language, value)
+
+
 def make_display_table(df, language, t):
     result = pd.DataFrame({
         t["restaurant"]: df["restaurant_display"],
         t["category"]: df["display_category"],
         t["name"]: df["display_name"],
-        t["variant"]: df["price_variant"].map(lambda value: nonempty(value) or "—"),
+        t["variant"]: df["price_variant"].map(lambda value: normalize_display_variant(value, language)),
         t["price"]: df["display_price"],
         t["old_price"]: df["display_old_price"],
         t["delta"]: df["display_delta"],
