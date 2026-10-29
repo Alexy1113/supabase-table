@@ -913,17 +913,17 @@ def main():
 
         # Food KPI excludes drinks/alcohol and non-food add-ons.
         non_dish_pattern = (
-            r"друг|\bmuu\b|\bother\b|напит|\bjoogid\b|\bdrinks?\b|"
-            r"соус|\bkastmed?\b|\bsauces?\b|сироп|siirup|\bsyrups?\b|"
-            r"алкогол|\balcohol\b|\balkohol\b|\balkohools?\b"
+            r"друг|muu|other|напит|joogi|drink|"
+            r"соус|kastmed|sauce|сироп|siirup|syrup|"
+            r"алкогол|alcohol|alkohol|alkohool"
         )
         non_dish_mask = category_text.str.contains(non_dish_pattern, regex=True, na=False)
         eligible_dishes = filtered[~non_dish_mask]
 
         # The drink KPI combines the drinks and alcoholic-drinks categories.
         drink_pattern = (
-            r"напит|\bjoogid\b|\bdrinks?\b|алкогол|\balcohol\b|"
-            r"\balcoholic\b|\balkohol\b|\balkohools?\b"
+            r"напит|joogi|drink|алкогол|alcohol|"
+            r"alkohol|alkohool"
         )
         drink_mask = category_text.str.contains(drink_pattern, regex=True, na=False)
         eligible_drinks = filtered[drink_mask]
