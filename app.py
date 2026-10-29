@@ -289,6 +289,23 @@ def prepare_dishes(source, language):
     df.loc[syrup_mask, "product_type"] = "syrups"
     df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
+    # Hesburger's Estonian category "Kastmed" means sauces, not Other.
+    category_columns = [
+        column for column in ("category_ru", "category_et", "product_type")
+        if column in df.columns
+    ]
+    if category_columns:
+        sauce_categories = pd.DataFrame(
+            {
+                column: df[column].fillna("").astype(str).str.strip().str.casefold()
+                for column in category_columns
+            },
+            index=df.index,
+        )
+        sauces_mask = sauce_categories.eq("kastmed").any(axis=1)
+        df.loc[sauces_mask, "product_type"] = "sauces"
+        if language == "Русский":
+            df.loc[sauces_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
 
     # Correct a few known Hesburger parser classifications using the item names
     # in both languages, so the result is stable in either interface language.
