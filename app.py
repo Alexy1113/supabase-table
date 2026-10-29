@@ -425,7 +425,7 @@ def render_cheapest_by_category(df, language, t):
         label = localized_product_type(category_key, language)
         category_groups.append((label, category_key, group))
 
-    category_groups.sort(key=lambda item: (item[1] in {"other", "другое", "другие", "muu", "muud", "others"}, item[0].casefold()))
+    category_groups.sort(key=lambda item: (category_emoji(item[1], item[0]) == "➕", item[0].casefold()))
 
     st.subheader(t["cheapest_heading"])
     st.markdown(
@@ -492,7 +492,7 @@ def render_cheapest_by_category(df, language, t):
             key=lambda series: series.astype(str).str.casefold(),
         )
 
-        emoji = CATEGORY_EMOJIS.get(str(category_key).casefold(), "🍽️")
+        emoji = category_emoji(category_key, label)
         safe_label = html.escape(f"{emoji} {label}")
         st.markdown(
             f'<div class="cheapest-category-title">{safe_label}</div>',
@@ -525,13 +525,52 @@ def render_cheapest_by_category(df, language, t):
 CATEGORY_EMOJIS = {
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
-    "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷", "alcohol": "🍷",
-    "breakfast": "🍳", "campaigns": "🏷️", "other": "➕",
-    "ice_cream_shakes": "🥤", "sets": "📦", "dumplings": "🥟", "sashimi": "🍣",
-    "nigiri": "🍣", "gunkan": "🍣", "inari": "🍣", "hosomaki": "🍣",
-    "tempura": "🍤", "sushi_rolls": "🍣", "soups": "🍲", "bowls": "🥣",
-    "noodles": "🍜", "main_courses": "🍛",
+    "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
+    "alcoholic_beverages": "🍷", "alcohol": "🍷", "alkohol": "🍷",
+    "breakfast": "🍳", "campaigns": "🏷️", "other": "➕", "others": "➕",
+    "ice_cream_shakes": "🥤", "sets": "📦", "set": "📦", "combo": "📦",
+    "dumplings": "🥟", "sashimi": "🍣", "nigiri": "🍣", "gunkan": "🍣",
+    "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣",
+    "sushi rolls": "🍣", "sushirullid": "🍣", "rolls": "🍣", "soups": "🍲",
+    "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
 }
+
+
+def category_emoji(*values):
+    """Return stable emojis for Russian, Estonian, English and canonical product categories."""
+    keys = []
+    for value in values:
+        value = nonempty(value)
+        if value is None:
+            continue
+        key = re.sub(r"[\\s_-]+", " ", value.casefold()).strip()
+        keys.append(key)
+
+    # Match specific categories first; display labels may differ from product_type.
+    if any(re.search(r"(?:алкогол|alkohol|alcohol)", key) for key in keys):
+        return "🍷"
+    if any(re.search(r"(?:набор|комплект|комбо|\\bsets?\\b|\\bcombo\\b|komplekt)", key) for key in keys):
+        return "📦"
+    if any(re.search(r"(?:ролл|\\brolls?\\b|sushirull|\\brullid?\\b|maki)", key) for key in keys):
+        return "🍣"
+    if any(re.search(r"(?:соус|kastm|\\bsauces?\\b)", key) for key in keys):
+        return "🌶️"
+    if any(re.search(r"(?:суп|\\bsoups?\\b|supid)", key) for key in keys):
+        return "🍲"
+    if any(re.search(r"(?:гарнир|lisand|\\bsides?\\b)", key) for key in keys):
+        return "🍚"
+    if any(key in {"другое", "другие", "muu", "muud", "other", "others"} for key in keys):
+        return "➕"
+
+    normalized_map = {
+        re.sub(r"[\\s_-]+", " ", key.casefold()).strip(): emoji
+        for key, emoji in CATEGORY_EMOJIS.items()
+    }
+    for key in keys:
+        if key in normalized_map:
+            return normalized_map[key]
+    return "🍽️"
+
 
 
 def format_price(value, language):
@@ -620,7 +659,7 @@ def render_price_cards(df, language, t):
         name = html.escape(str(row.get("display_name", "—")))
         restaurant = html.escape(str(row.get("restaurant_display", "—")))
         product_type = nonempty(row.get("product_type")) or "other"
-        emoji = CATEGORY_EMOJIS.get(product_type.casefold(), "🍽️")
+        emoji = category_emoji(product_type, row.get("display_category"))
         variant = normalize_display_variant(row.get("price_variant"), language)
         variant_html = (
             f'<div class="price-card-variant">{html.escape(variant)}</div>'
@@ -682,36 +721,10 @@ def filter_dishes(df, t):
         category.casefold(),
     ))
     categories = [t["all"]] + category_values
-    category_emojis = {
-        "бургеры": "🍔", "бургер": "🍔", "burgerid": "🍔", "burger": "🍔",
-        "тортильи": "🌯", "tortillad": "🌯", "tortilla": "🌯",
-        "салаты": "🥗", "salatid": "🥗", "salat": "🥗",
-        "закуски": "🥟", "suupisted": "🥟", "appetizers": "🥟",
-        "гарниры": "🍚", "гарнир": "🍚", "lisandid": "🍚", "sides": "🍚",
-        "соусы и добавки": "🌶️", "соусы": "🌶️", "kastmed ja lisandid": "🌶️", "kastmed": "🌶️", "sauces": "🌶️",
-        "сиропы и добавки": "🍯", "siirupid ja lisandid": "🍯", "syrups": "🍯",
-        "десерты": "🍰", "magustoidud": "🍰", "desserts": "🍰",
-        "напитки": "🥤", "joogid": "🥤", "drinks": "🥤",
-        "алкогольные напитки": "🍷", "алкоголь": "🍷", "alkohoolsed joogid": "🍷", "alkoholjoogid": "🍷", "alcoholic drinks": "🍷", "alcoholic_drinks": "🍷",
-        "завтраки": "🍳", "hommikusöök": "🍳", "breakfast": "🍳",
-        "акции": "🏷️", "kampaaniad": "🏷️", "campaigns": "🏷️",
-        "молочные коктейли": "🥤", "jäätisekokteilid": "🥤", "ice_cream_shakes": "🥤",
-        "наборы и комбо": "📦", "наборы": "📦", "komplektid": "📦", "sets": "📦",
-        "пельмени и дим-сам": "🥟", "pelmeenid ja dim sum": "🥟", "dumplings": "🥟",
-        "сашими": "🍣", "sashimi": "🍣", "нигири": "🍣", "nigiri": "🍣",
-        "гунканы": "🍣", "gunkan": "🍣", "инари": "🍣", "inari": "🍣",
-        "хосомаки": "🍣", "hosomaki": "🍣", "темпура": "🍤", "tempura": "🍤",
-        "роллы и маки": "🍽️", "sushirullid": "🍽️", "sushi rolls": "🍽️", "sushi_rolls": "🍽️",
-        "супы": "🍲", "supid": "🍲", "soups": "🍲",
-        "боулы": "🥣", "bow'id": "🥣", "bowls": "🥣",
-        "лапша": "🍜", "nuudlid": "🍜", "noodles": "🍜",
-        "основные блюда": "🍛", "pearoad": "🍛", "main_courses": "🍛",
-        "другое": "➕", "другие": "➕", "muu": "➕", "muud": "➕", "other": "➕", "others": "➕",
-    }
     category_options = {
         t["all"]: t["all"],
         **{
-            f'{category_emojis.get(category.casefold(), "🍽️")}  {category}': category
+            f'{category_emoji(category)}  {category}': category
             for category in categories if category != t["all"]
         },
     }
