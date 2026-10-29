@@ -46,7 +46,7 @@ TRANSLATIONS = {
         "updated": "Обновлено",
         "no_results": "По заданным фильтрам ничего не найдено.",
         "compare_heading": "Сравнение предложений",
-        "compare_hint": "Введите название или часть названия, чтобы увидеть подходящие позиции разных ресторанов. Для сравнения похожих товаров попробуйте общее слово, например «burger» или «kohv».",
+        "compare_hint": "Введите название или часть названия, чтобы увидеть подходящие позиции разных ресторанов. Для сравнения попробуйте общее слово, например «burger» или «kohv».",
         "compare_search": "Что сравнить?",
         "price_down": "Дешевле",
         "price_up": "Дороже",
@@ -120,7 +120,7 @@ PRODUCT_TYPE_LABELS = {
         "breakfast": "Завтраки",
         "campaigns": "Акции",
         "other": "Другое",
-        "ice_cream_shakes": "Молочные коктейли",
+        "ice_cream_shakes": "Напитки",
         "sets": "Наборы и комбо",
         "dumplings": "Пельмени и дим-сам",
         "sashimi": "Сашими",
@@ -148,7 +148,7 @@ PRODUCT_TYPE_LABELS = {
         "breakfast": "Hommikusöök",
         "campaigns": "Kampaaniad",
         "other": "Muu",
-        "ice_cream_shakes": "Jäätisekokteilid",
+        "ice_cream_shakes": "Joogid",
         "sets": "Komplektid",
         "dumplings": "Pelmeenid ja dim sum",
         "sashimi": "Sashimi",
@@ -166,7 +166,6 @@ PRODUCT_TYPE_LABELS = {
 }
 
 
-
 def get_text(language):
     return TRANSLATIONS[language]
 
@@ -174,13 +173,12 @@ def get_text(language):
 @st.cache_resource
 def get_supabase_client():
     url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]  # Use the public publishable/anon key, never a secret key here.
+    key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
 
 @st.cache_data(ttl=30)
 def load_table(table_name):
-    """Read rows in pages so menus larger than the API default limit are included."""
     client = get_supabase_client()
     rows = []
     page_size = 1000
@@ -219,17 +217,31 @@ def first_value(row, columns, default=None):
 
 
 def normalize_display_category(value, language):
-    """Hide the descriptive text following the Hesburger breakfast heading."""
     value = nonempty(value)
     if value is None:
         return "Muu" if language == "Eesti" else "Другое"
 
-    # Resilient display normalization, even if an old cached/database value
-    # still contains the full heading "HOMMIKUPALA igal hommikul ...".
     if language == "Eesti" and value.casefold().startswith("hommikupala"):
         return "Hommikupala"
 
     return value
+
+
+def categorize_drinks_like(value):
+    text = nonempty(value)
+    if text is None:
+        return "drinks"
+    lowered = text.casefold()
+    drink_markers = (
+        "drink", "drinks", "beverage", "joog", "jook", "kohv", "tee",
+        "kokteil", "cocktail", "milkshake", "shake", "alkohol", "alcohol",
+        "beer", "wine", "õlu", "vein", "vahuvein", "siider",
+        "горячий напиток", "горячие напитки", "напиток", "напитки",
+        "коктейл", "алкоголь", "сироп", "siirup", "syrup",
+    )
+    if any(marker in lowered for marker in drink_markers):
+        return "drinks"
+    return text
 
 
 def prepare_dishes(source, language):
@@ -237,11 +249,8 @@ def prepare_dishes(source, language):
     if df.empty:
         return df
 
-    # Use the actual restaurant_name column. dish_code is an item identifier,
-    # not a reliable restaurant identifier (Ocean Sushi codes may be numeric).
     if "restaurant_name" not in df.columns:
         df["restaurant_name"] = None
-
     if "dish_code" not in df.columns:
         df["dish_code"] = None
 
@@ -254,6 +263,18 @@ def prepare_dishes(source, language):
         return prefix.replace("_", " ").title() if ":" in code else "Unknown"
 
     df["restaurant_display"] = df.apply(restaurant_name, axis=1)
+
+    if "product_type" not in df.columns:
+        df["product_type"] = None
+
+    category_source = df[[col for col in ("category_ru", "category_et", "product_type") if col in df.columns]].fillna("").astype(str)
+    drink_like_mask = category_source.apply(
+        lambda row: any(
+            categorize_drinks_like(cell) == "drinks" for cell in row
+        ),
+        axis=1,
+    )
+    df.loc[drink_like_mask, "product_type"] = "drinks"
 
     if language == "Русский":
         df["display_name"] = df.apply(
@@ -278,10 +299,8 @@ def prepare_dishes(source, language):
             axis=1,
         )
 
-    # A syrup such as "Karamellisiirup kohvile" may be listed near coffee,
-    # but it is an add-on, not a beverage. Override stale database categorization too.
-    if "product_type" not in df.columns:
-        df["product_type"] = None
+    df.loc[drink_like_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["drinks"]
+
     syrup_mask = df["display_name"].fillna("").astype(str).str.contains(
         r"(siirup|syrup|siroop|сироп)",
         case=False,
@@ -291,7 +310,6 @@ def prepare_dishes(source, language):
     df.loc[syrup_mask, "product_type"] = "syrups"
     df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
-    # Hesburger's Estonian category "Kastmed" means sauces, not Other.
     category_columns = [
         column for column in ("category_ru", "category_et", "product_type")
         if column in df.columns
@@ -304,13 +322,16 @@ def prepare_dishes(source, language):
             },
             index=df.index,
         )
-        sauces_mask = sauce_categories.eq("kastmed").any(axis=1)
+        sauces_mask = sauce_categories.eq("kastmed").any(axis=1) | sauce_categories.apply(
+            lambda row: any(
+                marker in str(row).lower() for marker in ["sauce", "соус", "kastmed", "kastme", "kaste"]
+            ),
+            axis=1,
+        )
         df.loc[sauces_mask, "product_type"] = "sauces"
         if language == "Русский":
             df.loc[sauces_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
 
-    # The scraped Hesburger row can have "Kastmed" as its item name even when
-    # its category columns do not contain that label. Treat that row as sauces.
     hesburger_kastmed_item = (
         df["restaurant_display"].fillna("").astype(str).str.contains(
             r"hesburger", case=False, regex=True, na=False
@@ -320,8 +341,6 @@ def prepare_dishes(source, language):
     df.loc[hesburger_kastmed_item, "product_type"] = "sauces"
     df.loc[hesburger_kastmed_item, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
 
-    # Correct a few known Hesburger parser classifications using the item names
-    # in both languages, so the result is stable in either interface language.
     name_columns = [column for column in ("dish_name_ru", "dish_name_et", "dish_name") if column in df.columns]
     if name_columns:
         names_by_language = pd.DataFrame(
@@ -333,7 +352,6 @@ def prepare_dishes(source, language):
         )
         all_names = names_by_language.agg(" ".join, axis=1)
 
-        # Tšilli-juustunagitsad (4/6/9 tk, etc.) are appetizers, not a separate category.
         nuggets_mask = all_names.str.contains(
             r"(tšilli[-\s]?juustunagitsad|chilli?[-\s]?cheese[-\s]?nuggets?|чили[^,;]*наггетс)",
             case=False,
@@ -343,7 +361,6 @@ def prepare_dishes(source, language):
         df.loc[nuggets_mask, "product_type"] = "appetizers"
         df.loc[nuggets_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["appetizers"]
 
-        # The standalone Hesburger item named "Lisandid" belongs under Other/Muu.
         lisandid_mask = names_by_language.eq("lisandid").any(axis=1)
         df.loc[lisandid_mask, "product_type"] = "other"
         df.loc[lisandid_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["other"]
@@ -362,10 +379,8 @@ def prepare_dishes(source, language):
 
     if "last_updated" not in df.columns:
         df["last_updated"] = None
-
     if "id" not in df.columns:
         df["id"] = df.index.astype(str)
-
     if "product_type" not in df.columns:
         df["product_type"] = None
     if "price_variant" not in df.columns:
@@ -385,43 +400,23 @@ def localized_date(value, language):
 
 
 def normalize_display_variant(value, language):
-    """Show readable, localized labels instead of parser-internal variant names."""
     value = nonempty(value)
     if value is None:
         return "—"
 
     key = " ".join(value.split()).casefold()
-
-    # Piece-count variants are stored canonically as "6 tk", "8 tk", etc.
-    # Translate only the unit for the Russian interface.
     size_match = re.fullmatch(r"(\d+)\s*tk", key)
     if size_match:
         count = size_match.group(1)
         return f"{count} шт." if language == "Русский" else f"{count} tk"
 
     labels = {
-        "burger": {
-            "Русский": "Только бургер",
-            "Eesti": "Burger üksi",
-        },
-        "eine": {
-            "Русский": "Комбо",
-            "Eesti": "Eine",
-        },
-        "suur eine": {
-            "Русский": "Большое комбо",
-            "Eesti": "Suur eine",
-        },
-        "single": {
-            "Русский": "—",
-            "Eesti": "—",
-        },
-        "with topping": {
-            "Русский": "С топпингом",
-            "Eesti": "Lisandiga",
-        },
+        "burger": {"Русский": "Только бургер", "Eesti": "Burger üksi"},
+        "eine": {"Русский": "Комбо", "Eesti": "Eine"},
+        "suur eine": {"Русский": "Большое комбо", "Eesti": "Suur eine"},
+        "single": {"Русский": "—", "Eesti": "—"},
+        "with topping": {"Русский": "С топпингом", "Eesti": "Lisandiga"},
     }
-
     return labels.get(key, {}).get(language, value)
 
 
@@ -439,17 +434,17 @@ def make_display_table(df, language, t):
     return result
 
 
-
 def localized_product_type(value, language):
     key = nonempty(value)
     if key is None:
         key = "other"
-    key = key.casefold()
-    return PRODUCT_TYPE_LABELS.get(language, {}).get(key, key.replace("_", " ").capitalize())
+    normalized = key.casefold()
+    if any(marker in normalized for marker in ["drink", "joog", "kokteil", "cocktail", "alkohol", "alcohol", "beer", "wine", "напит", "коктейл", "алкогол"]):
+        return "Напитки" if language == "Русский" else "Joogid"
+    return PRODUCT_TYPE_LABELS.get(language, {}).get(normalized, key.replace("_", " ").capitalize())
 
 
 def render_cheapest_by_category(df, language, t):
-    """Show the cheapest item(s) in every shared product category across all restaurants."""
     if df.empty:
         st.info(t["cheapest_empty"])
         return
@@ -466,9 +461,6 @@ def render_cheapest_by_category(df, language, t):
         .replace("", "other")
         .str.casefold()
     )
-
-    # Suppress exact duplicate rows, but keep different portions, variants, prices,
-    # or restaurants as separate offers.
     work["name_key"] = work["display_name"].fillna("").astype(str).map(
         lambda value: re.sub(r"[^\w]", "", value.casefold(), flags=re.UNICODE)
     )
@@ -581,10 +573,7 @@ def render_cheapest_by_category(df, language, t):
             )
 
 
-
-
 CATEGORY_EMOJIS = {
-    # Canonical product_type values.
     "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
     "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
@@ -595,8 +584,6 @@ CATEGORY_EMOJIS = {
     "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣",
     "sushi rolls": "🍣", "sushirullid": "🍣", "rolls": "🍣", "soups": "🍲",
     "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
-
-    # Russian display labels.
     "бургеры": "🍔", "бургер": "🍔", "тортильи": "🌯", "салаты": "🥗",
     "закуски": "🥟", "гарниры": "🍚", "гарнир": "🍚", "соусы": "🌶️",
     "соусы и добавки": "🌶️", "сиропы и добавки": "🍯", "десерты": "🍰",
@@ -607,8 +594,6 @@ CATEGORY_EMOJIS = {
     "гунканы": "🍣", "инари": "🍣", "хосомаки": "🍣", "темпура": "🍤",
     "роллы и маки": "🍣", "супы": "🍲", "боулы": "🥣", "лапша": "🍜",
     "основные блюда": "🍛",
-
-    # Estonian display labels.
     "burgerid": "🍔", "tortillad": "🌯", "salatid": "🥗", "suupisted": "🥟",
     "lisandid": "🍚", "kastmed": "🌶️", "kastmed ja lisandid": "🌶️",
     "siirupid ja lisandid": "🍯", "magustoidud": "🍰", "joogid": "🥤",
@@ -624,7 +609,6 @@ CATEGORY_EMOJIS = {
 
 
 def category_emoji(*values):
-    """Return stable emojis for Russian, Estonian, English and canonical product categories."""
     keys = []
     for value in values:
         value = nonempty(value)
@@ -633,7 +617,6 @@ def category_emoji(*values):
         key = re.sub(r"[\s_-]+", " ", value.casefold()).strip()
         keys.append(key)
 
-    # Match specific categories first; display labels may differ from product_type.
     if any(re.search(r"(?:алкогол|alkoh|alcohol)", key) for key in keys):
         return "🍷"
     if any(re.search(r"(?:набор|комплект|комбо|сеты?|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
@@ -659,7 +642,6 @@ def category_emoji(*values):
     return "🍽️"
 
 
-
 def format_price(value, language):
     try:
         number = f"{float(value):.2f}"
@@ -671,7 +653,6 @@ def format_price(value, language):
 
 
 def render_price_cards(df, language, t):
-    """Responsive, theme-aware menu cards used on both the menu and comparison tabs."""
     if df.empty:
         st.info(t["no_results"])
         return
@@ -843,7 +824,6 @@ def main():
         load_table.clear()
         st.rerun()
 
-    # Inline brand logo keeps the full SVG sharp at every screen size.
     st.markdown(
         f"""
         <div style="display:flex; align-items:center; gap:16px; margin:0.25rem 0 0.5rem 0;">
@@ -887,15 +867,12 @@ def main():
     except Exception:
         st.error(t["connection_error"])
         st.info(
-            "Streamlit → App settings → Secrets: add SUPABASE_URL and SUPABASE_KEY. "
-            "SUPABASE_KEY must be the public publishable/anon key; RLS controls read access."
+            "Streamlit → App settings → Secrets: add SUPABASE_URL and SUPABASE_KEY. SUPABASE_KEY must be the public publishable/anon key; RLS controls read access."
             if language == "Русский"
-            else "Streamlit → App settings → Secrets: lisa SUPABASE_URL ja SUPABASE_KEY. "
-                 "SUPABASE_KEY peab olema avalik publishable/anon-võti; lugemisõigust juhib RLS."
+            else "Streamlit → App settings → Secrets: lisa SUPABASE_URL ja SUPABASE_KEY. SUPABASE_KEY peab olema avalik publishable/anon-võti; lugemisõigust juhib RLS."
         )
         st.stop()
 
-    # Show the newest update timestamp stored in the database (Tallinn local time).
     latest_update = None
     if "last_updated" in source.columns:
         update_times = pd.to_datetime(source["last_updated"], errors="coerce", utc=True)
@@ -931,12 +908,8 @@ def main():
         total_restaurants = filtered["restaurant_display"].nunique()
         price_changes = int((filtered["display_delta"].fillna(0) != 0).sum())
 
-        # Build a searchable category string from localized and raw category fields.
-        # This catches inconsistent parser values, including Hesburger's "Kastmed".
         category_columns = [
-            column for column in (
-                "display_category", "category_ru", "category_et", "product_type"
-            )
+            column for column in ("display_category", "category_ru", "category_et", "product_type")
             if column in filtered.columns
         ]
         category_text = (
@@ -947,7 +920,6 @@ def main():
             .str.casefold()
         )
 
-        # Food KPI excludes drinks/alcohol and non-food add-ons.
         non_dish_pattern = (
             r"друг|muu|other|напит|joogi|drink|"
             r"соус|kastmed|sauce|сироп|siirup|syrup|"
@@ -956,10 +928,9 @@ def main():
         non_dish_mask = category_text.str.contains(non_dish_pattern, regex=True, na=False)
         eligible_dishes = filtered[~non_dish_mask]
 
-        # The drink KPI combines the drinks and alcoholic-drinks categories.
         drink_pattern = (
             r"напит|joogi|drink|алкогол|alcohol|"
-            r"alkohol|alkohool"
+            r"alkohol|alkohool|kokteil|cocktail"
         )
         drink_mask = category_text.str.contains(drink_pattern, regex=True, na=False)
         eligible_drinks = filtered[drink_mask]
@@ -1018,7 +989,6 @@ def main():
             render_price_cards(display_df, language, t)
 
     with tab_cheapest:
-        # Deliberately use all dishes, not the filter-selected subset.
         render_cheapest_by_category(dishes, language, t)
 
 
