@@ -117,6 +117,7 @@ PRODUCT_TYPE_LABELS = {
         "syrups": "Сиропы и добавки",
         "desserts": "Десерты",
         "drinks": "Напитки",
+        "alcoholic_drinks": "Алкогольные напитки (18+)",
         "breakfast": "Завтраки",
         "campaigns": "Акции",
         "other": "Другое",
@@ -145,6 +146,7 @@ PRODUCT_TYPE_LABELS = {
         "syrups": "Siirupid ja lisandid",
         "desserts": "Magustoidud",
         "drinks": "Joogid",
+        "alcoholic_drinks": "Alkohoolsed joogid (18+)",
         "breakfast": "Hommikusöök",
         "campaigns": "Kampaaniad",
         "other": "Muu",
@@ -346,8 +348,9 @@ def prepare_dishes(source, language):
 
     # Use product_type as the single canonical category across every restaurant.
     # Original category_ru/category_et values remain untouched in the source columns.
-    df["display_category"] = df["product_type"].map(
-        lambda value: localized_product_type(value, language)
+    df["display_category"] = df.apply(
+        lambda row: canonical_website_category(row, language),
+        axis=1,
     )
 
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
@@ -429,6 +432,35 @@ def localized_product_type(value, language):
     return PRODUCT_TYPE_LABELS.get(language, {}).get(normalized, key.replace("_", " ").capitalize())
 
 
+def canonical_website_category(row, language):
+    """Return one website category while preserving meaningful shared subgroups."""
+    product_type = (nonempty(row.get("product_type")) or "other").casefold()
+    category_ru = (nonempty(row.get("category_ru")) or "").casefold()
+    category_et = (nonempty(row.get("category_et")) or "").casefold()
+
+    # Alcohol is stored under product_type="drinks", but is a separate 18+ group.
+    if product_type == "drinks" and (
+        "алкогол" in category_ru or "alkohool" in category_et
+    ):
+        return localized_product_type("alcoholic_drinks", language)
+
+    # These product types intentionally share one public-facing category.
+    if product_type == "ice_cream_shakes":
+        return localized_product_type("drinks", language)
+    if product_type in {"sushi_rolls", "hosomaki"}:
+        return localized_product_type("sushi_rolls", language)
+
+    # Tempura rolls are classified as product_type="tempura" by the parser,
+    # but their canonical menu category is still rolls. Standalone tempura
+    # remains its own category.
+    if product_type == "tempura" and (
+        category_ru == "роллы" or category_et == "maki"
+    ):
+        return localized_product_type("sushi_rolls", language)
+
+    return localized_product_type(product_type, language)
+
+
 def render_cheapest_by_category(df, language, t):
     if df.empty:
         st.info(t["cheapest_empty"])
@@ -439,11 +471,11 @@ def render_cheapest_by_category(df, language, t):
         work["product_type"] = "other"
 
     work["category_key"] = (
-        work["product_type"]
-        .fillna("other")
+        work["display_category"]
+        .fillna("Другое" if language == "Русский" else "Muu")
         .astype(str)
         .str.strip()
-        .replace("", "other")
+        .replace("", "Другое" if language == "Русский" else "Muu")
         .str.casefold()
     )
     work["name_key"] = work["display_name"].fillna("").astype(str).map(
@@ -460,7 +492,7 @@ def render_cheapest_by_category(df, language, t):
 
     category_groups = []
     for category_key, group in work.groupby("category_key", sort=False):
-        label = localized_product_type(category_key, language)
+        label = nonempty(group["display_category"].iloc[0]) or ("Другое" if language == "Русский" else "Muu")
         category_groups.append((label, category_key, group))
 
     category_groups.sort(key=lambda item: (category_emoji(item[1], item[0]) == "➕", item[0].casefold()))
