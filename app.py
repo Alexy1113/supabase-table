@@ -372,15 +372,6 @@ def make_display_table(df, language, t):
     return result
 
 
-def localized_product_type(value, language):
-    """Get the localized label from the shared category registry."""
-    key = category_key_for_product_type(nonempty(value))
-    if key:
-        return category_label(key, language)
-    fallback = nonempty(value) or "other"
-    return fallback.replace("_", " ").capitalize()
-
-
 def canonical_website_category(row, language):
     """Resolve all website category labels through the shared taxonomy package."""
     product_type = nonempty(row.get("product_type")) or "other"
