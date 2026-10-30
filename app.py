@@ -496,10 +496,7 @@ def render_cheapest_by_category(df, language, t):
 
     category_groups = []
     for category_key, group in work.groupby("category_key", sort=False):
-        if category_key.startswith("break_time::"):
-            label = category_key.split("::", 1)[1]
-        else:
-            label = localized_product_type(category_key, language)
+        label = localized_product_type(category_key, language)
         category_groups.append((label, category_key, group))
 
     category_groups.sort(key=lambda item: (category_emoji(item[1], item[0]) == "➕", item[0].casefold()))
