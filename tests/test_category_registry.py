@@ -1,6 +1,7 @@
 """Integration checks proving the website uses the shared category package."""
 import unittest
 
+from app import canonical_website_category
 from restaurant_taxonomy import (
     category_label,
     get_category_emoji,
@@ -47,6 +48,39 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
         self.assertNotEqual(resolve_category_key("sushi_rolls"), resolve_category_key("nigiri"))
         self.assertNotEqual(resolve_category_key("sushi_rolls"), resolve_category_key("sashimi"))
         self.assertNotEqual(resolve_category_key("sauces"), resolve_category_key("syrups"))
+
+    def test_website_uses_shared_resolver_for_legacy_rows(self):
+        cases = (
+            (
+                {"product_type": "tortillas", "category_ru": "Врапы и шаурма", "category_et": "Wrapid ja kebabid"},
+                "Тортильи",
+                "Tortillad",
+            ),
+            (
+                {"product_type": "sets", "category_ru": "Сеты", "category_et": "Komplektid"},
+                "Наборы и комбо",
+                "Komplektid",
+            ),
+            (
+                {"product_type": "sushi_rolls", "category_ru": "Роллы", "category_et": "Maki"},
+                "Роллы и маки",
+                "Sushirullid ja maki",
+            ),
+            (
+                {"product_type": "drinks", "category_ru": "Алкогольные напитки (18+)", "category_et": "Alkohoolsed joogid (18+)"},
+                "Алкогольные напитки (18+)",
+                "Alkohoolsed joogid (18+)",
+            ),
+            (
+                {"product_type": "tempura", "category_ru": "Темпура", "category_et": "Tempura"},
+                "Темпура",
+                "Tempura",
+            ),
+        )
+        for row, expected_ru, expected_et in cases:
+            with self.subTest(row=row):
+                self.assertEqual(canonical_website_category(row, "Русский"), expected_ru)
+                self.assertEqual(canonical_website_category(row, "Eesti"), expected_et)
 
     def test_emojis_come_from_the_same_registry(self):
         self.assertEqual(get_category_emoji("sets"), "📦")
