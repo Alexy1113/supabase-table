@@ -427,9 +427,12 @@ def localized_product_type(value, language):
     if key is None:
         key = "other"
     normalized = key.casefold()
+    mapped_label = PRODUCT_TYPE_LABELS.get(language, {}).get(normalized)
+    if mapped_label:
+        return mapped_label
     if any(marker in normalized for marker in ["drink", "joog", "kokteil", "cocktail", "alkohol", "alcohol", "beer", "wine", "напит", "коктейл", "алкогол"]):
         return "Напитки" if language == "Русский" else "Joogid"
-    return PRODUCT_TYPE_LABELS.get(language, {}).get(normalized, key.replace("_", " ").capitalize())
+    return key.replace("_", " ").capitalize()
 
 
 def canonical_website_category(row, language):
