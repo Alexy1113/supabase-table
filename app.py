@@ -112,7 +112,7 @@ PRODUCT_TYPE_LABELS = {
     "Русский": {
         "burgers": "Бургеры",
         "pizzas": "Пицца",
-        "pasta": "Паста",
+        "pasta": "Лапша и Паста",
         "tortillas": "Тортильи",
         "salads": "Салаты",
         "appetizers": "Закуски",
@@ -137,13 +137,13 @@ PRODUCT_TYPE_LABELS = {
         "sushi_rolls": "Роллы и маки",
         "soups": "Супы",
         "bowls": "Боулы",
-        "noodles": "Лапша",
+        "noodles": "Лапша и Паста",
         "main_courses": "Основные блюда",
     },
     "Eesti": {
         "burgers": "Burgerid",
         "pizzas": "Pitsad",
-        "pasta": "Pastad",
+        "pasta": "Nuudlid ja pasta",
         "tortillas": "Tortillad",
         "salads": "Salatid",
         "appetizers": "Suupisted",
@@ -168,7 +168,7 @@ PRODUCT_TYPE_LABELS = {
         "sushi_rolls": "Sushirullid ja maki",
         "soups": "Supid",
         "bowls": "Bow'id",
-        "noodles": "Nuudlid",
+        "noodles": "Nuudlid ja pasta",
         "main_courses": "Pearoad",
     },
 }
@@ -450,6 +450,10 @@ def canonical_website_category(row, language):
     category_ru = (nonempty(row.get("category_ru")) or "").casefold()
     category_et = (nonempty(row.get("category_et")) or "").casefold()
 
+    # Old and new parser rows for either menu section use one public category.
+    if re.search(r"(?:лапш|паст)", category_ru) or re.search(r"(?:nuudl|pasta)", category_et):
+        return localized_product_type("noodles", language)
+
     # Alcohol is stored under product_type="drinks", but is a separate 18+ group.
     if product_type == "drinks" and (
         "алкогол" in category_ru or "alkohool" in category_et
@@ -603,7 +607,7 @@ def render_cheapest_by_category(df, language, t):
 
 
 CATEGORY_EMOJIS = {
-    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "pasta": "🍝", "паста": "🍝", "pastad": "🍝", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
+    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "pasta": "🍜", "паста": "🍜", "pastad": "🍜", "лапша и паста": "🍜", "nuudlid ja pasta": "🍜", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
     "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
     "alcoholic_beverages": "🍷", "alcohol": "🍷", "alkohol": "🍷",
