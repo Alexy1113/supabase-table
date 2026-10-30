@@ -286,12 +286,6 @@ def prepare_dishes(source, language):
             axis=1,
         )
 
-    # Use product_type as the single canonical category across every restaurant.
-    # Original category_ru/category_et values remain untouched in the source columns.
-    df["display_category"] = df["product_type"].map(
-        lambda value: localized_product_type(value, language)
-    )
-
     syrup_mask = df["display_name"].fillna("").astype(str).str.contains(
         r"(siirup|syrup|siroop|сироп)",
         case=False,
@@ -299,7 +293,6 @@ def prepare_dishes(source, language):
         na=False,
     )
     df.loc[syrup_mask, "product_type"] = "syrups"
-    df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
     category_columns = [
         column for column in ("category_ru", "category_et", "product_type")
@@ -350,6 +343,12 @@ def prepare_dishes(source, language):
 
         lisandid_mask = names_by_language.eq("lisandid").any(axis=1)
         df.loc[lisandid_mask, "product_type"] = "other"
+
+    # Use product_type as the single canonical category across every restaurant.
+    # Original category_ru/category_et values remain untouched in the source columns.
+    df["display_category"] = df["product_type"].map(
+        lambda value: localized_product_type(value, language)
+    )
 
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
     fallback_price = df["price"] if "price" in df.columns else pd.Series(pd.NA, index=df.index)
