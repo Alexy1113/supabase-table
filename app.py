@@ -263,9 +263,13 @@ def prepare_dishes(source, language):
         return prefix.replace("_", " ").title() if ":" in code else "Unknown"
 
     df["restaurant_display"] = df.apply(restaurant_name, axis=1)
+    break_time_mask = df["restaurant_display"].fillna("").astype(str).str.contains(
+        r"break\s*time", case=False, regex=True, na=False
+    )
 
     if "product_type" not in df.columns:
         df["product_type"] = None
+    original_product_type = df["product_type"].copy()
 
     category_source = df[[col for col in ("category_ru", "category_et", "product_type") if col in df.columns]].fillna("").astype(str)
     drink_like_mask = category_source.apply(
@@ -364,6 +368,23 @@ def prepare_dishes(source, language):
         lisandid_mask = names_by_language.eq("lisandid").any(axis=1)
         df.loc[lisandid_mask, "product_type"] = "other"
         df.loc[lisandid_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["other"]
+
+    # Break Time categories must remain exactly as stored by its menu parser.
+    # Other restaurants keep the shared display-normalization rules above.
+    if break_time_mask.any():
+        df.loc[break_time_mask, "product_type"] = original_product_type.loc[break_time_mask]
+        category_column = "category_ru" if language == "Русский" else "category_et"
+        if category_column in df.columns:
+            source_categories = df.loc[break_time_mask, category_column].map(nonempty)
+        else:
+            source_categories = pd.Series(None, index=df.index[break_time_mask], dtype=object)
+        fallback_categories = df.loc[break_time_mask, "product_type"].map(
+            lambda value: PRODUCT_TYPE_LABELS[language].get(nonempty(value), None)
+            if nonempty(value) else None
+        )
+        df.loc[break_time_mask, "display_category"] = source_categories.fillna(
+            fallback_categories
+        ).fillna("Другое" if language == "Русский" else "Muu")
 
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
     fallback_price = df["price"] if "price" in df.columns else pd.Series(pd.NA, index=df.index)
