@@ -117,6 +117,7 @@ PRODUCT_TYPE_LABELS = {
         "syrups": "Сиропы и добавки",
         "desserts": "Десерты",
         "drinks": "Напитки",
+        "alcoholic_drinks": "Алкогольные напитки (18+)",
         "breakfast": "Завтраки",
         "campaigns": "Акции",
         "other": "Другое",
@@ -145,6 +146,7 @@ PRODUCT_TYPE_LABELS = {
         "syrups": "Siirupid ja lisandid",
         "desserts": "Magustoidud",
         "drinks": "Joogid",
+        "alcoholic_drinks": "Alkohoolsed joogid (18+)",
         "breakfast": "Hommikusöök",
         "campaigns": "Kampaaniad",
         "other": "Muu",
@@ -263,13 +265,8 @@ def prepare_dishes(source, language):
         return prefix.replace("_", " ").title() if ":" in code else "Unknown"
 
     df["restaurant_display"] = df.apply(restaurant_name, axis=1)
-    break_time_mask = df["restaurant_display"].fillna("").astype(str).str.contains(
-        r"break\s*time", case=False, regex=True, na=False
-    )
-
     if "product_type" not in df.columns:
         df["product_type"] = None
-    original_product_type = df["product_type"].copy()
 
     category_source = df[[col for col in ("category_ru", "category_et", "product_type") if col in df.columns]].fillna("").astype(str)
     drink_like_mask = category_source.apply(
@@ -285,25 +282,11 @@ def prepare_dishes(source, language):
             lambda row: first_value(row, ["dish_name_ru", "dish_name", "dish_name_et"], "Без названия"),
             axis=1,
         )
-        df["display_category"] = df.apply(
-            lambda row: normalize_display_category(
-                first_value(row, ["category_ru", "product_type"], "Другое"), language
-            ),
-            axis=1,
-        )
     else:
         df["display_name"] = df.apply(
             lambda row: first_value(row, ["dish_name_et", "dish_name", "dish_name_ru"], "Nimetu toode"),
             axis=1,
         )
-        df["display_category"] = df.apply(
-            lambda row: normalize_display_category(
-                first_value(row, ["category_et", "product_type"], "Muu"), language
-            ),
-            axis=1,
-        )
-
-    df.loc[drink_like_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["drinks"]
 
     syrup_mask = df["display_name"].fillna("").astype(str).str.contains(
         r"(siirup|syrup|siroop|сироп)",
@@ -312,7 +295,6 @@ def prepare_dishes(source, language):
         na=False,
     )
     df.loc[syrup_mask, "product_type"] = "syrups"
-    df.loc[syrup_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["syrups"]
 
     category_columns = [
         column for column in ("category_ru", "category_et", "product_type")
@@ -333,9 +315,7 @@ def prepare_dishes(source, language):
             axis=1,
         )
         df.loc[sauces_mask, "product_type"] = "sauces"
-        if language == "Русский":
-            df.loc[sauces_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
-
+    
     hesburger_kastmed_item = (
         df["restaurant_display"].fillna("").astype(str).str.contains(
             r"hesburger", case=False, regex=True, na=False
@@ -343,7 +323,6 @@ def prepare_dishes(source, language):
         & df["display_name"].fillna("").astype(str).str.strip().str.casefold().eq("kastmed")
     )
     df.loc[hesburger_kastmed_item, "product_type"] = "sauces"
-    df.loc[hesburger_kastmed_item, "display_category"] = PRODUCT_TYPE_LABELS[language]["sauces"]
 
     name_columns = [column for column in ("dish_name_ru", "dish_name_et", "dish_name") if column in df.columns]
     if name_columns:
@@ -363,28 +342,16 @@ def prepare_dishes(source, language):
             na=False,
         )
         df.loc[nuggets_mask, "product_type"] = "appetizers"
-        df.loc[nuggets_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["appetizers"]
 
         lisandid_mask = names_by_language.eq("lisandid").any(axis=1)
         df.loc[lisandid_mask, "product_type"] = "other"
-        df.loc[lisandid_mask, "display_category"] = PRODUCT_TYPE_LABELS[language]["other"]
 
-    # Break Time categories must remain exactly as stored by its menu parser.
-    # Other restaurants keep the shared display-normalization rules above.
-    if break_time_mask.any():
-        df.loc[break_time_mask, "product_type"] = original_product_type.loc[break_time_mask]
-        category_column = "category_ru" if language == "Русский" else "category_et"
-        if category_column in df.columns:
-            source_categories = df.loc[break_time_mask, category_column].map(nonempty)
-        else:
-            source_categories = pd.Series(None, index=df.index[break_time_mask], dtype=object)
-        fallback_categories = df.loc[break_time_mask, "product_type"].map(
-            lambda value: PRODUCT_TYPE_LABELS[language].get(nonempty(value), None)
-            if nonempty(value) else None
-        )
-        df.loc[break_time_mask, "display_category"] = source_categories.fillna(
-            fallback_categories
-        ).fillna("Другое" if language == "Русский" else "Muu")
+    # Use product_type as the single canonical category across every restaurant.
+    # Original category_ru/category_et values remain untouched in the source columns.
+    df["display_category"] = df.apply(
+        lambda row: canonical_website_category(row, language),
+        axis=1,
+    )
 
     price_source = df["current_price"] if "current_price" in df.columns else pd.Series(pd.NA, index=df.index)
     fallback_price = df["price"] if "price" in df.columns else pd.Series(pd.NA, index=df.index)
@@ -460,9 +427,41 @@ def localized_product_type(value, language):
     if key is None:
         key = "other"
     normalized = key.casefold()
+    mapped_label = PRODUCT_TYPE_LABELS.get(language, {}).get(normalized)
+    if mapped_label:
+        return mapped_label
     if any(marker in normalized for marker in ["drink", "joog", "kokteil", "cocktail", "alkohol", "alcohol", "beer", "wine", "напит", "коктейл", "алкогол"]):
         return "Напитки" if language == "Русский" else "Joogid"
-    return PRODUCT_TYPE_LABELS.get(language, {}).get(normalized, key.replace("_", " ").capitalize())
+    return key.replace("_", " ").capitalize()
+
+
+def canonical_website_category(row, language):
+    """Return one website category while preserving meaningful shared subgroups."""
+    product_type = (nonempty(row.get("product_type")) or "other").casefold()
+    category_ru = (nonempty(row.get("category_ru")) or "").casefold()
+    category_et = (nonempty(row.get("category_et")) or "").casefold()
+
+    # Alcohol is stored under product_type="drinks", but is a separate 18+ group.
+    if product_type == "drinks" and (
+        "алкогол" in category_ru or "alkohool" in category_et
+    ):
+        return localized_product_type("alcoholic_drinks", language)
+
+    # These product types intentionally share one public-facing category.
+    if product_type == "ice_cream_shakes":
+        return localized_product_type("drinks", language)
+    if product_type in {"sushi_rolls", "hosomaki"}:
+        return localized_product_type("sushi_rolls", language)
+
+    # Tempura rolls are classified as product_type="tempura" by the parser,
+    # but their canonical menu category is still rolls. Standalone tempura
+    # remains its own category.
+    if product_type == "tempura" and (
+        category_ru == "роллы" or category_et == "maki"
+    ):
+        return localized_product_type("sushi_rolls", language)
+
+    return localized_product_type(product_type, language)
 
 
 def render_cheapest_by_category(df, language, t):
@@ -475,11 +474,11 @@ def render_cheapest_by_category(df, language, t):
         work["product_type"] = "other"
 
     work["category_key"] = (
-        work["product_type"]
-        .fillna("other")
+        work["display_category"]
+        .fillna("Другое" if language == "Русский" else "Muu")
         .astype(str)
         .str.strip()
-        .replace("", "other")
+        .replace("", "Другое" if language == "Русский" else "Muu")
         .str.casefold()
     )
     work["name_key"] = work["display_name"].fillna("").astype(str).map(
@@ -496,7 +495,7 @@ def render_cheapest_by_category(df, language, t):
 
     category_groups = []
     for category_key, group in work.groupby("category_key", sort=False):
-        label = localized_product_type(category_key, language)
+        label = nonempty(group["display_category"].iloc[0]) or ("Другое" if language == "Русский" else "Muu")
         category_groups.append((label, category_key, group))
 
     category_groups.sort(key=lambda item: (category_emoji(item[1], item[0]) == "➕", item[0].casefold()))
