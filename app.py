@@ -3,6 +3,12 @@ import re
 import pandas as pd
 import streamlit as st
 from supabase import create_client
+from restaurant_taxonomy import (
+    category_label,
+    category_key_for_product_type,
+    resolve_category_key,
+    get_category_emoji as shared_category_emoji,
+)
 
 st.set_page_config(
     page_title="Menüü Hinnad",
@@ -105,71 +111,6 @@ TRANSLATIONS = {
         "of": "/",
         "minimum": "Miinimum",
         "maximum": "Maksimum",
-    },
-}
-
-PRODUCT_TYPE_LABELS = {
-    "Русский": {
-        "burgers": "Бургеры",
-        "pizzas": "Пицца",
-        "pasta": "Лапша и Паста",
-        "tortillas": "Тортильи",
-        "salads": "Салаты",
-        "appetizers": "Закуски",
-        "sides": "Гарниры",
-        "sauces": "Соусы и добавки",
-        "syrups": "Сиропы и добавки",
-        "desserts": "Десерты",
-        "drinks": "Напитки",
-        "alcoholic_drinks": "Алкогольные напитки (18+)",
-        "breakfast": "Завтраки",
-        "campaigns": "Акции",
-        "other": "Другое",
-        "ice_cream_shakes": "Напитки",
-        "sets": "Наборы и комбо",
-        "dumplings": "Пельмени и дим-сам",
-        "sashimi": "Сашими",
-        "nigiri": "Нигири",
-        "gunkan": "Гунканы",
-        "inari": "Инари",
-        "hosomaki": "Хосомаки",
-        "tempura": "Темпура",
-        "sushi_rolls": "Роллы и маки",
-        "soups": "Супы",
-        "bowls": "Боулы",
-        "noodles": "Лапша и Паста",
-        "main_courses": "Основные блюда",
-    },
-    "Eesti": {
-        "burgers": "Burgerid",
-        "pizzas": "Pitsad",
-        "pasta": "Nuudlid ja pasta",
-        "tortillas": "Tortillad",
-        "salads": "Salatid",
-        "appetizers": "Suupisted",
-        "sides": "Lisandid",
-        "sauces": "Kastmed ja lisandid",
-        "syrups": "Siirupid ja lisandid",
-        "desserts": "Magustoidud",
-        "drinks": "Joogid",
-        "alcoholic_drinks": "Alkohoolsed joogid (18+)",
-        "breakfast": "Hommikusöök",
-        "campaigns": "Kampaaniad",
-        "other": "Muu",
-        "ice_cream_shakes": "Joogid",
-        "sets": "Komplektid",
-        "dumplings": "Pelmeenid ja dim sum",
-        "sashimi": "Sashimi",
-        "nigiri": "Nigiri",
-        "gunkan": "Gunkan",
-        "inari": "Inari",
-        "hosomaki": "Hosomaki",
-        "tempura": "Tempura",
-        "sushi_rolls": "Sushirullid ja maki",
-        "soups": "Supid",
-        "bowls": "Bow'id",
-        "noodles": "Nuudlid ja pasta",
-        "main_courses": "Pearoad",
     },
 }
 
@@ -432,49 +373,32 @@ def make_display_table(df, language, t):
 
 
 def localized_product_type(value, language):
-    key = nonempty(value)
-    if key is None:
-        key = "other"
-    normalized = key.casefold()
-    mapped_label = PRODUCT_TYPE_LABELS.get(language, {}).get(normalized)
-    if mapped_label:
-        return mapped_label
-    if any(marker in normalized for marker in ["drink", "joog", "kokteil", "cocktail", "alkohol", "alcohol", "beer", "wine", "напит", "коктейл", "алкогол"]):
-        return "Напитки" if language == "Русский" else "Joogid"
-    return key.replace("_", " ").capitalize()
+    """Get the localized label from the shared category registry."""
+    key = category_key_for_product_type(nonempty(value))
+    if key:
+        return category_label(key, language)
+    fallback = nonempty(value) or "other"
+    return fallback.replace("_", " ").capitalize()
 
 
 def canonical_website_category(row, language):
-    """Return one website category while preserving meaningful shared subgroups."""
-    product_type = (nonempty(row.get("product_type")) or "other").casefold()
-    category_ru = (nonempty(row.get("category_ru")) or "").casefold()
-    category_et = (nonempty(row.get("category_et")) or "").casefold()
+    """Resolve all website category labels through the shared taxonomy package."""
+    product_type = nonempty(row.get("product_type")) or "other"
+    dish_name = " ".join(
+        str(row.get(key) or "")
+        for key in ("dish_name_ru", "dish_name_et", "dish_name")
+    )
+    key = resolve_category_key(
+        product_type,
+        category_ru=row.get("category_ru"),
+        category_et=row.get("category_et"),
+        dish_name=dish_name,
+    )
+    if key:
+        return category_label(key, language)
 
-    # Old and new parser rows for either menu section use one public category.
-    if re.search(r"(?:лапш|паст)", category_ru) or re.search(r"(?:nuudl|pasta)", category_et):
-        return localized_product_type("noodles", language)
-
-    # Alcohol is stored under product_type="drinks", but is a separate 18+ group.
-    if product_type == "drinks" and (
-        "алкогол" in category_ru or "alkohool" in category_et
-    ):
-        return localized_product_type("alcoholic_drinks", language)
-
-    # These product types intentionally share one public-facing category.
-    if product_type == "ice_cream_shakes":
-        return localized_product_type("drinks", language)
-    if product_type in {"sushi_rolls", "hosomaki"}:
-        return localized_product_type("sushi_rolls", language)
-
-    # Tempura rolls are classified as product_type="tempura" by the parser,
-    # but their canonical menu category is still rolls. Standalone tempura
-    # remains its own category.
-    if product_type == "tempura" and (
-        category_ru == "роллы" or category_et == "maki"
-    ):
-        return localized_product_type("sushi_rolls", language)
-
-    return localized_product_type(product_type, language)
+    fallback_key = category_key_for_product_type(product_type) or "other"
+    return category_label(fallback_key, language)
 
 
 def render_cheapest_by_category(df, language, t):
@@ -606,73 +530,9 @@ def render_cheapest_by_category(df, language, t):
             )
 
 
-CATEGORY_EMOJIS = {
-    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "pasta": "🍜", "паста": "🍜", "pastad": "🍜", "лапша и паста": "🍜", "nuudlid ja pasta": "🍜", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
-    "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
-    "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
-    "alcoholic_beverages": "🍷", "alcohol": "🍷", "alkohol": "🍷",
-    "breakfast": "🍳", "campaigns": "🏷️", "other": "➕", "others": "➕",
-    "ice_cream_shakes": "🥤", "sets": "📦", "set": "📦", "combo": "📦",
-    "dumplings": "🥟", "sashimi": "🍣", "nigiri": "🍣", "gunkan": "🍣",
-    "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤", "sushi_rolls": "🍣",
-    "sushi rolls": "🍣", "sushirullid": "🍣", "rolls": "🍣", "soups": "🍲",
-    "bowls": "🥣", "noodles": "🍜", "main_courses": "🍛",
-    "бургеры": "🍔", "бургер": "🍔", "тортильи": "🌯", "салаты": "🥗",
-    "закуски": "🥟", "гарниры": "🍚", "гарнир": "🍚", "соусы": "🌶️",
-    "соусы и добавки": "🌶️", "сиропы и добавки": "🍯", "десерты": "🍰",
-    "напитки": "🥤", "алкогольные напитки": "🍷", "алкоголь": "🍷",
-    "завтраки": "🍳", "акции": "🏷️", "другое": "➕", "другие": "➕",
-    "молочные коктейли": "🥤", "наборы и комбо": "📦", "наборы": "📦",
-    "пельмени и дим-сам": "🥟", "сашими": "🍣", "нигири": "🍣",
-    "гунканы": "🍣", "инари": "🍣", "хосомаки": "🍣", "темпура": "🍤",
-    "роллы и маки": "🍣", "супы": "🍲", "боулы": "🥣", "лапша": "🍜",
-    "основные блюда": "🍛",
-    "burgerid": "🍔", "tortillad": "🌯", "salatid": "🥗", "suupisted": "🥟",
-    "lisandid": "🍚", "kastmed": "🌶️", "kastmed ja lisandid": "🌶️",
-    "siirupid ja lisandid": "🍯", "magustoidud": "🍰", "joogid": "🥤",
-    "alkohoolsed joogid": "🍷", "alkohoolised joogid": "🍷", "alkoholjoogid": "🍷",
-    "hommikusöök": "🍳", "hommikusöögid": "🍳", "hommikusoogid": "🍳",
-    "kampaaniad": "🏷️", "muu": "➕", "muud": "➕",
-    "jäätisekokteilid": "🥤", "komplektid": "📦",
-    "pelmeenid ja dim sum": "🥟", "eelroad": "🥟", "sashimi": "🍣", "nigiri": "🍣",
-    "gunkan": "🍣", "gunkanid": "🍣", "inari": "🍣", "hosomaki": "🍣", "tempura": "🍤",
-    "sushirullid ja maki": "🍣", "supid": "🍲", "bow'id": "🥣",
-    "nuudlid": "🍜", "pearoad": "🍛", "põhiroad": "🍛", "pohiroad": "🍛", "pqhiroad": "🍛",
-}
-
-
 def category_emoji(*values):
-    keys = []
-    for value in values:
-        value = nonempty(value)
-        if value is None:
-            continue
-        key = re.sub(r"[\s_-]+", " ", value.casefold()).strip()
-        keys.append(key)
-
-    if any(re.search(r"(?:алкогол|alkoh|alcohol)", key) for key in keys):
-        return "🍷"
-    if any(re.search(r"(?:набор|комплект|комбо|сеты?|\bsets?\b|\bcombo\b|komplekt)", key) for key in keys):
-        return "📦"
-    if any(re.search(r"(?:ролл|\brolls?\b|sushirull|\brullid?\b|maki)", key) for key in keys):
-        return "🍣"
-    if any(re.search(r"(?:соус|kastm|\bsauces?\b)", key) for key in keys):
-        return "🌶️"
-    if any(re.search(r"(?:суп|\bsoups?\b|supid)", key) for key in keys):
-        return "🍲"
-    if any(key in {"гарнир", "гарниры", "lisand", "lisandid", "side", "sides"} for key in keys):
-        return "🍚"
-    if any(key in {"другое", "другие", "muu", "muud", "other", "others"} for key in keys):
-        return "➕"
-
-    normalized_map = {
-        re.sub(r"[\s_-]+", " ", key.casefold()).strip(): emoji
-        for key, emoji in CATEGORY_EMOJIS.items()
-    }
-    for key in keys:
-        if key in normalized_map:
-            return normalized_map[key]
-    return "🍽️"
+    """Use the emoji defined beside category labels in the shared registry."""
+    return shared_category_emoji(*values)
 
 
 def format_price(value, language):
@@ -760,7 +620,7 @@ def render_price_cards(df, language, t):
         name = html.escape(str(row.get("display_name", "—")))
         restaurant = html.escape(str(row.get("restaurant_display", "—")))
         product_type = nonempty(row.get("product_type")) or "other"
-        emoji = category_emoji(product_type, row.get("display_category"))
+        emoji = category_emoji(row.get("display_category"), product_type)
         variant = normalize_display_variant(row.get("price_variant"), language)
         variant_html = (
             f'<div class="price-card-variant">{html.escape(variant)}</div>'
