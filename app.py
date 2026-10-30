@@ -36,6 +36,7 @@ TRANSLATIONS = {
         "tab_menu": "Меню и цены",
         "tab_compare": "Сравнение",
         "tab_cheapest": "Самые дешёвые",
+        "tab_map": "Карта",
         "cheapest_heading": "Самые дешёвые товары по категориям",
         "cheapest_empty": "Нет товаров для отображения.",
         "name": "Блюдо / продукт",
@@ -82,6 +83,7 @@ TRANSLATIONS = {
         "tab_menu": "Menüü ja hinnad",
         "tab_compare": "Võrdlus",
         "tab_cheapest": "Odavaimad",
+        "tab_map": "Kaart",
         "cheapest_heading": "Kõige odavamad tooted kategooriate kaupa",
         "cheapest_empty": "Kuvamiseks pole tooteid.",
         "name": "Toode",
@@ -985,8 +987,8 @@ def main():
                 f'{html.escape(str(cheapest_drink["restaurant_display"]))}'
             )
 
-    tab_menu, tab_cheapest = st.tabs(
-        [t["tab_menu"], t["tab_cheapest"]]
+    tab_menu, tab_cheapest, tab_map = st.tabs(
+        [t["tab_menu"], t["tab_cheapest"], t["tab_map"]]
     )
 
     with tab_menu:
@@ -1010,6 +1012,13 @@ def main():
 
     with tab_cheapest:
         render_cheapest_by_category(dishes, language, t)
+
+    with tab_map:
+        st.components.v1.iframe(
+            "https://www.google.com/maps/d/embed?mid=1g0ENhUYBVXlcUtNfX4WKK3Fl2osnMwA&ehbc=2E312F&noprof=1",
+            height=680,
+            scrolling=True,
+        )
 
 
 if __name__ == "__main__":
