@@ -482,12 +482,6 @@ def render_cheapest_by_category(df, language, t):
         .replace("", "other")
         .str.casefold()
     )
-    break_time_mask = work["restaurant_display"].fillna("").astype(str).str.contains(
-        r"break\s*time", case=False, regex=True, na=False
-    )
-    work.loc[break_time_mask, "category_key"] = (
-        "break_time::" + work.loc[break_time_mask, "display_category"].fillna("Другое").astype(str)
-    )
     work["name_key"] = work["display_name"].fillna("").astype(str).map(
         lambda value: re.sub(r"[^\w]", "", value.casefold(), flags=re.UNICODE)
     )
