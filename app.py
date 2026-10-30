@@ -112,6 +112,7 @@ PRODUCT_TYPE_LABELS = {
     "Русский": {
         "burgers": "Бургеры",
         "pizzas": "Пицца",
+        "pasta": "Паста",
         "tortillas": "Тортильи",
         "salads": "Салаты",
         "appetizers": "Закуски",
@@ -142,6 +143,7 @@ PRODUCT_TYPE_LABELS = {
     "Eesti": {
         "burgers": "Burgerid",
         "pizzas": "Pitsad",
+        "pasta": "Pastad",
         "tortillas": "Tortillad",
         "salads": "Salatid",
         "appetizers": "Suupisted",
@@ -408,6 +410,9 @@ def normalize_display_variant(value, language):
         "suur eine": {"Русский": "Большое комбо", "Eesti": "Suur eine"},
         "single": {"Русский": "—", "Eesti": "—"},
         "with topping": {"Русский": "С топпингом", "Eesti": "Lisandiga"},
+        "small": {"Русский": "Маленькая", "Eesti": "Väike"},
+        "large": {"Русский": "Большая", "Eesti": "Suur"},
+        "family": {"Русский": "Семейная (самая большая)", "Eesti": "Pere (kõige suurem)"},
     }
     return labels.get(key, {}).get(language, value)
 
@@ -598,7 +603,7 @@ def render_cheapest_by_category(df, language, t):
 
 
 CATEGORY_EMOJIS = {
-    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
+    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "pasta": "🍝", "паста": "🍝", "pastad": "🍝", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
     "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
     "alcoholic_beverages": "🍷", "alcohol": "🍷", "alkohol": "🍷",
