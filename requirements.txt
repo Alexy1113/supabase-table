@@ -1,3 +1,4 @@
 streamlit>=1.35.0
 supabase>=2.3.0
 pandas>=2.0.0
+restaurant-taxonomy @ git+https://github.com/Alexy1113/Restaurant-prices-extractor.git@5fc4e74592a4130d446c09f7e6fa729df4270179#subdirectory=shared_taxonomy
