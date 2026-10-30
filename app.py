@@ -111,6 +111,7 @@ TRANSLATIONS = {
 PRODUCT_TYPE_LABELS = {
     "Русский": {
         "burgers": "Бургеры",
+        "pizzas": "Пицца",
         "tortillas": "Тортильи",
         "salads": "Салаты",
         "appetizers": "Закуски",
@@ -140,6 +141,7 @@ PRODUCT_TYPE_LABELS = {
     },
     "Eesti": {
         "burgers": "Burgerid",
+        "pizzas": "Pitsad",
         "tortillas": "Tortillad",
         "salads": "Salatid",
         "appetizers": "Suupisted",
@@ -596,7 +598,7 @@ def render_cheapest_by_category(df, language, t):
 
 
 CATEGORY_EMOJIS = {
-    "burgers": "🍔", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
+    "burgers": "🍔", "pizzas": "🍕", "пицца": "🍕", "pitsad": "🍕", "tortillas": "🌯", "salads": "🥗", "appetizers": "🥟",
     "sides": "🍚", "sauces": "🌶️", "syrups": "🍯", "desserts": "🍰",
     "drinks": "🥤", "alcoholic_drinks": "🍷", "alcoholic drinks": "🍷",
     "alcoholic_beverages": "🍷", "alcohol": "🍷", "alkohol": "🍷",
