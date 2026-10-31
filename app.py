@@ -722,6 +722,11 @@ def render_price_cards(df, language, t):
     st.markdown("".join(cards), unsafe_allow_html=True)
 
 
+def switch_to_menu_tab(tab_key, menu_tab_label):
+    """Select the menu tab whenever a sidebar category filter changes."""
+    st.session_state[tab_key] = menu_tab_label
+
+
 def filter_dishes(df, t, language):
     st.sidebar.header(t["filters"])
     search = st.sidebar.text_input(t["search"], key="dish_search").strip().casefold()
@@ -795,6 +800,8 @@ def filter_dishes(df, t, language):
         ),
         key=f"sidebar_category_filter_{'et' if language == 'Eesti' else 'ru'}",
         label_visibility="visible",
+        on_change=switch_to_menu_tab,
+        args=("main_tabs", t["tab_menu"]),
     )
 
     if selected_category != t["all"]:
@@ -818,6 +825,26 @@ def main():
         key="interface_language",
     )
     t = get_text(language)
+
+    st.markdown(
+        """
+        <style>
+        @media (max-width: 768px) {
+            [data-testid="stSidebar"][aria-expanded="true"] {
+                width: min(90vw, 440px) !important;
+                min-width: min(90vw, 440px) !important;
+                max-width: min(90vw, 440px) !important;
+            }
+            [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarContent"] {
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if st.sidebar.button(t["refresh"]):
         load_table.clear()
@@ -1043,7 +1070,9 @@ def main():
             )
 
     tab_menu, tab_cheapest, tab_promos, tab_map = st.tabs(
-        [t["tab_menu"], t["tab_cheapest"], t["tab_promos"], t["tab_map"]]
+        [t["tab_menu"], t["tab_cheapest"], t["tab_promos"], t["tab_map"]],
+        key="main_tabs",
+        on_change="rerun",
     )
 
     with tab_menu:
