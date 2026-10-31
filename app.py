@@ -31,6 +31,7 @@ TRANSLATIONS = {
         "all": "Все",
         "category": "Категория",
         "sort": "Сортировка",
+        "sort_default": "По умолчанию",
         "sort_low": "Сначала дешевле",
         "sort_high": "Сначала дороже",
         "sort_name": "По названию",
@@ -78,6 +79,7 @@ TRANSLATIONS = {
         "all": "Kõik",
         "category": "Kategooria",
         "sort": "Sorteerimine",
+        "sort_default": "Vaikimisi",
         "sort_low": "Odavamad eespool",
         "sort_high": "Kallimad eespool",
         "sort_name": "Nime järgi",
@@ -857,17 +859,60 @@ def main():
         if filtered.empty:
             st.info(t["no_results"])
         else:
-            sort_label = st.selectbox(
-                t["sort"],
-                [t["sort_low"], t["sort_high"], t["sort_name"]],
-                key="menu_sort",
+            st.markdown(
+                """
+                <style>
+                div[data-testid="stRadio"] div[role="radiogroup"] {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label {
+                    border: 1px solid rgba(128, 128, 128, 0.32);
+                    border-radius: 999px;
+                    padding: 0.42rem 0.9rem;
+                    background: rgba(128, 128, 128, 0.055);
+                    transition: background-color 0.15s ease, border-color 0.15s ease;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
+                    background: rgba(15, 118, 110, 0.14);
+                    border-color: #0f766e;
+                    color: inherit;
+                    font-weight: 700;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
+                    display: none;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label p {
+                    margin: 0;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
             )
-            if sort_label == t["sort_low"]:
+            sort_options = {
+                f'↕️  {t["sort_default"]}': "default",
+                f'€↓  {t["sort_low"]}': "low",
+                f'€↑  {t["sort_high"]}': "high",
+                f'🔤  {t["sort_name"]}': "name",
+            }
+            selected_sort = st.radio(
+                t["sort"],
+                list(sort_options.keys()),
+                horizontal=True,
+                key="menu_sort",
+                label_visibility="collapsed",
+            )
+            sort_mode = sort_options[selected_sort]
+
+            if sort_mode == "low":
                 display_df = filtered.sort_values("display_price", ascending=True)
-            elif sort_label == t["sort_high"]:
+            elif sort_mode == "high":
                 display_df = filtered.sort_values("display_price", ascending=False)
-            else:
+            elif sort_mode == "name":
                 display_df = filtered.sort_values("display_name", key=lambda s: s.str.casefold())
+            else:
+                display_df = filtered
 
             st.caption(f'{t["showing"]} {len(display_df)} {t["of"]} {len(dishes)}')
             render_price_cards(display_df, language, t)
