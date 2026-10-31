@@ -723,13 +723,13 @@ def filter_dishes(df, t, language):
     st.sidebar.markdown(
         """
         <style>
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] {
             display: flex;
             flex-direction: column;
             align-items: stretch;
             gap: 0.12rem;
         }
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label {
             min-height: 40px;
             display: flex;
             align-items: center;
@@ -741,20 +741,20 @@ def filter_dishes(df, t, language):
             -webkit-tap-highlight-color: transparent;
             transition: background-color 0.15s ease, border-color 0.15s ease;
         }
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
             display: none;
         }
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label p {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label p {
             margin: 0;
             line-height: 1.3;
         }
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
             background: rgba(15, 118, 110, 0.13);
             border-color: rgba(15, 118, 110, 0.45);
             border-left: 3px solid #0f766e;
             font-weight: 700;
         }
-        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:hover {
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label:hover {
             background: rgba(128, 128, 128, 0.09);
         }
         </style>
@@ -952,7 +952,7 @@ def main():
                 <style>
                 /* Keep the sort controls as real Streamlit radio inputs:
                    they remain keyboard-, touch- and screen-reader-operable. */
-                div[data-testid="stRadio"] div[role="radiogroup"] {
+                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] {
                     display: flex;
                     flex-wrap: nowrap;
                     gap: 0.5rem;
@@ -963,7 +963,7 @@ def main():
                     scrollbar-width: thin;
                     touch-action: pan-x;
                 }
-                div[data-testid="stRadio"] div[role="radiogroup"] label {
+                .st-key-menu_sort .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label {
                     flex: 0 0 auto;
                     min-height: 44px;
                     display: flex;
@@ -978,24 +978,24 @@ def main():
                     -webkit-tap-highlight-color: transparent;
                     transition: background-color 0.15s ease, border-color 0.15s ease;
                 }
-                div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
+                .st-key-menu_sort .st-key-menu_sort .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
                     background: rgba(15, 118, 110, 0.14);
                     border-color: #0f766e;
                     color: inherit;
                     font-weight: 700;
                 }
-                div[data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
+                .st-key-menu_sort .st-key-menu_sort .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
                     display: none;
                 }
-                div[data-testid="stRadio"] div[role="radiogroup"] label p {
+                .st-key-menu_sort .st-key-menu_sort .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label p {
                     margin: 0;
                     white-space: nowrap;
                 }
                 @media (max-width: 560px) {
-                    div[data-testid="stRadio"] div[role="radiogroup"] {
+                    .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] {
                         gap: 0.4rem;
                     }
-                    div[data-testid="stRadio"] div[role="radiogroup"] label {
+                    .st-key-menu_sort .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label {
                         min-height: 46px;
                         padding: 0.6rem 0.85rem;
                     }
