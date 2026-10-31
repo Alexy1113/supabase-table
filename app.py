@@ -1256,7 +1256,7 @@ def main():
             unsafe_allow_html=True,
         )
         whatsapp_url = (
-            "https://wa.me/37258564333?text="
+            "https://wa.me/37258284333?text="
             + quote(t["promo_welcome_message"])
         )
         st.link_button(t["promo_button"], whatsapp_url)
