@@ -2,6 +2,7 @@ import html
 import re
 import pandas as pd
 import streamlit as st
+from urllib.parse import quote
 from supabase import create_client
 from restaurant_taxonomy import (
     category_label,
@@ -44,6 +45,18 @@ TRANSLATIONS = {
         "tab_menu": "Меню и цены",
         "tab_compare": "Сравнение",
         "tab_cheapest": "Самые дешёвые",
+        "tab_promos": "Промо",
+        "promo_eyebrow": "ДЛЯ ВЛАДЕЛЬЦЕВ РЕСТОРАНОВ",
+        "promo_title": "Расскажите о своих специальных предложениях",
+        "promo_description": "Привлекайте новых гостей и рассказывайте посетителям Menüü Hinnad о выгодных предложениях вашего ресторана.",
+        "promo_benefits_title": "Что можно разместить?",
+        "promo_benefit_1": "Скидки и акции",
+        "promo_benefit_2": "Комбо и специальные меню",
+        "promo_benefit_3": "Предложения недели и сезонные новинки",
+        "promo_note": "Напишите нам в WhatsApp, расскажите об условиях предложения и при желании приложите фото меню. Мы свяжемся с вами, чтобы обсудить размещение.",
+        "promo_button": "🟢 Отправить предложение в WhatsApp",
+        "promo_welcome_message": "Здравствуйте! Я хочу разместить промо-акцию на сайте Menüü Hinnad. Вот условия предложения и, при необходимости, фото меню:",
+        "promo_whatsapp_hint": "Кнопка откроет WhatsApp с уже подготовленным сообщением.",
         "tab_map": "Карта",
         "cheapest_heading": "Самые дешёвые товары по категориям",
         "cheapest_empty": "Нет товаров для отображения.",
@@ -92,6 +105,18 @@ TRANSLATIONS = {
         "tab_menu": "Menüü ja hinnad",
         "tab_compare": "Võrdlus",
         "tab_cheapest": "Odavaimad",
+        "tab_promos": "Pakkumised",
+        "promo_eyebrow": "RESTORANIPIDAJATELE",
+        "promo_title": "Tutvustage oma eripakkumisi",
+        "promo_description": "Tooge oma restorani rohkem külastajaid ja tutvustage Menüü Hinnad veebilehe kasutajatele oma häid pakkumisi.",
+        "promo_benefits_title": "Mida saate avaldada?",
+        "promo_benefit_1": "Soodustused ja kampaaniad",
+        "promo_benefit_2": "Kombo- ja erimenüüd",
+        "promo_benefit_3": "Nädalapakkumised ja hooajalised uudised",
+        "promo_note": "Kirjutage meile WhatsAppis, kirjeldage pakkumise tingimusi ja lisage soovi korral menüü foto. Võtame teiega ühendust, et avaldamine kokku leppida.",
+        "promo_button": "🟢 Saada pakkumine WhatsAppi kaudu",
+        "promo_welcome_message": "Tere! Soovin avaldada oma restorani eripakkumise veebilehel Menüü Hinnad. Siin on pakkumise tingimused ja vajadusel menüü foto:",
+        "promo_whatsapp_hint": "Nupp avab WhatsAppi koos valmis sõnumiga.",
         "tab_map": "Kaart",
         "cheapest_heading": "Kõige odavamad tooted kategooriate kaupa",
         "cheapest_empty": "Kuvamiseks pole tooteid.",
@@ -1017,8 +1042,8 @@ def main():
                 f'{html.escape(str(cheapest_drink["restaurant_display"]))}'
             )
 
-    tab_menu, tab_cheapest, tab_map = st.tabs(
-        [t["tab_menu"], t["tab_cheapest"], t["tab_map"]]
+    tab_menu, tab_cheapest, tab_promos, tab_map = st.tabs(
+        [t["tab_menu"], t["tab_cheapest"], t["tab_promos"], t["tab_map"]]
     )
 
     with tab_menu:
@@ -1127,6 +1152,115 @@ def main():
 
     with tab_cheapest:
         render_cheapest_by_category(dishes, language, t)
+
+    with tab_promos:
+        st.markdown(
+            f"""
+            <style>
+            .promo-panel {{
+                max-width: 820px;
+                margin: 0.35rem auto 0.8rem auto;
+                padding: clamp(1.25rem, 4vw, 2.25rem);
+                border: 1px solid rgba(128, 128, 128, 0.22);
+                border-radius: 1.25rem;
+                background:
+                    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.12), transparent 38%),
+                    linear-gradient(135deg, rgba(128, 128, 128, 0.075), rgba(128, 128, 128, 0.025));
+                box-sizing: border-box;
+            }}
+            .promo-eyebrow {{
+                margin: 0 0 0.6rem 0;
+                color: #159957;
+                font-size: 0.76rem;
+                font-weight: 800;
+                letter-spacing: 0.1em;
+            }}
+            .promo-heading {{
+                margin: 0 0 0.75rem 0;
+                font-size: clamp(1.45rem, 3.4vw, 2.15rem);
+                line-height: 1.15;
+                font-weight: 800;
+                overflow-wrap: anywhere;
+            }}
+            .promo-description {{
+                margin: 0 0 1.5rem 0;
+                font-size: 1rem;
+                line-height: 1.6;
+                opacity: 0.86;
+            }}
+            .promo-benefits-heading {{
+                margin: 0 0 0.7rem 0;
+                font-size: 1rem;
+                font-weight: 750;
+            }}
+            .promo-benefits {{
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.65rem;
+                margin-bottom: 1.35rem;
+            }}
+            .promo-benefit {{
+                min-width: 0;
+                padding: 0.85rem;
+                border: 1px solid rgba(128, 128, 128, 0.18);
+                border-radius: 0.85rem;
+                background: rgba(128, 128, 128, 0.055);
+                font-size: 0.92rem;
+                line-height: 1.4;
+                font-weight: 650;
+                overflow-wrap: anywhere;
+            }}
+            .promo-benefit-icon {{
+                display: block;
+                margin-bottom: 0.45rem;
+                font-size: 1.35rem;
+            }}
+            .promo-note {{
+                margin: 0;
+                padding-top: 1.1rem;
+                border-top: 1px solid rgba(128, 128, 128, 0.2);
+                font-size: 0.94rem;
+                line-height: 1.6;
+                opacity: 0.84;
+            }}
+            @media (max-width: 640px) {{
+                .promo-benefits {{
+                    grid-template-columns: minmax(0, 1fr);
+                    gap: 0.5rem;
+                }}
+                .promo-benefit {{
+                    display: flex;
+                    align-items: center;
+                    gap: 0.7rem;
+                    padding: 0.7rem 0.8rem;
+                }}
+                .promo-benefit-icon {{
+                    margin: 0;
+                    flex: 0 0 1.6rem;
+                }}
+            }}
+            </style>
+            <section class="promo-panel">
+                <p class="promo-eyebrow">{html.escape(t["promo_eyebrow"])}</p>
+                <h2 class="promo-heading">{html.escape(t["promo_title"])}</h2>
+                <p class="promo-description">{html.escape(t["promo_description"])}</p>
+                <h3 class="promo-benefits-heading">{html.escape(t["promo_benefits_title"])}</h3>
+                <div class="promo-benefits">
+                    <div class="promo-benefit"><span class="promo-benefit-icon">🏷️</span>{html.escape(t["promo_benefit_1"])}</div>
+                    <div class="promo-benefit"><span class="promo-benefit-icon">🍔</span>{html.escape(t["promo_benefit_2"])}</div>
+                    <div class="promo-benefit"><span class="promo-benefit-icon">✨</span>{html.escape(t["promo_benefit_3"])}</div>
+                </div>
+                <p class="promo-note">{html.escape(t["promo_note"])}</p>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
+        whatsapp_url = (
+            "https://wa.me/37258564333?text="
+            + quote(t["promo_welcome_message"])
+        )
+        st.link_button(t["promo_button"], whatsapp_url)
+        st.caption(t["promo_whatsapp_hint"])
 
     with tab_map:
         st.components.v1.iframe(
