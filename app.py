@@ -461,6 +461,16 @@ def render_cheapest_by_category(df, language, t):
             opacity: 0.78;
             margin-top: 0.2rem;
         }
+        .cheapest-item-variant {
+            display: inline-block;
+            margin-top: 0.28rem;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            background: rgba(128, 128, 128, 0.12);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            opacity: 0.88;
+        }
         .cheapest-price {
             flex-shrink: 0;
             display: inline-block;
@@ -505,12 +515,18 @@ def render_cheapest_by_category(df, language, t):
         for _, row in winners.iterrows():
             name = html.escape(str(row["display_name"]))
             restaurant = html.escape(str(row["restaurant_display"]))
+            variant = normalize_display_variant(row.get("price_variant"), language)
+            variant_html = (
+                f'<div class="cheapest-item-variant">{html.escape(variant)}</div>'
+                if variant and variant != "—" else ""
+            )
             price_text = f"{lowest_price:.2f} €".replace(".", ",") if language == "Русский" else f"{lowest_price:.2f} €"
             safe_price = html.escape(price_text)
             st.markdown(
                 f'<div class="cheapest-item-row">'
                 f'<div><div class="cheapest-item-name">{name}</div>'
-                f'<div class="cheapest-item-restaurant">{restaurant}</div></div>'
+                f'<div class="cheapest-item-restaurant">{restaurant}</div>'
+                f'{variant_html}</div>'
                 f'<span class="cheapest-price">{safe_price}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
