@@ -1278,11 +1278,20 @@ def main():
                 line-height: 1.6;
                 opacity: 0.84;
             }}
-            /* Center the WhatsApp action independently of the promo card. */
+            /* Match the promo card's width and center the action on its centerline. */
+            .st-key-promo_whatsapp_button {{
+                width: 100%;
+                max-width: 820px;
+                margin: 0.35rem auto 0;
+                display: flex;
+                justify-content: center;
+                box-sizing: border-box;
+            }}
             .st-key-promo_whatsapp_button [data-testid="stLinkButton"] {{
                 display: flex;
                 justify-content: center;
-                width: 100%;
+                width: fit-content;
+                margin: 0 auto;
             }}
             @media (max-width: 640px) {{
                 .promo-benefits {{
