@@ -761,15 +761,26 @@ def filter_dishes(df, t, language):
         }
         [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label {
             min-height: 40px;
+            max-width: 100%;
+            min-width: 0;
             display: flex;
+            flex-wrap: nowrap;
             align-items: center;
+            white-space: nowrap;
             margin: 0;
             padding: 0.42rem 0.65rem;
             border: 1px solid transparent;
             border-radius: 0.55rem;
+            box-sizing: border-box;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label > div:last-child {
+            min-width: 0;
+            max-width: 100%;
+            flex: 1 1 auto;
+            overflow: hidden;
         }
         [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
             display: none;
@@ -777,6 +788,9 @@ def filter_dishes(df, t, language):
         [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label p {
             margin: 0;
             line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
             background: rgba(15, 118, 110, 0.13);
