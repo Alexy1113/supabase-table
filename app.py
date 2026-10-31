@@ -1278,6 +1278,12 @@ def main():
                 line-height: 1.6;
                 opacity: 0.84;
             }}
+            /* Center the WhatsApp action independently of the promo card. */
+            .st-key-promo_whatsapp_button [data-testid="stLinkButton"] {{
+                display: flex;
+                justify-content: center;
+                width: 100%;
+            }}
             @media (max-width: 640px) {{
                 .promo-benefits {{
                     grid-template-columns: minmax(0, 1fr);
@@ -1314,7 +1320,8 @@ def main():
             "https://wa.me/37258284333?text="
             + quote(t["promo_welcome_message"])
         )
-        st.link_button(t["promo_button"], whatsapp_url)
+        with st.container(key="promo_whatsapp_button"):
+            st.link_button(t["promo_button"], whatsapp_url)
         st.caption(t["promo_whatsapp_hint"])
 
     with tab_map:
