@@ -21,6 +21,7 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
             "gunkan": ("Гунканы", "Gunkan"),
             "bowls": ("Боулы", "Bow'id"),
             "tortillas": ("Тортильи", "Tortillad"),
+            "hot_dogs": ("Хот-доги", "Hot dogid"),
             "noodles_pasta": ("Лапша и Паста", "Nuudlid ja pasta"),
         }
         for key, (ru, et) in expected.items():
@@ -34,6 +35,9 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
         self.assertEqual(resolve_category_key("hosomaki"), "sushi_rolls")
         self.assertEqual(resolve_category_key("ice_cream_shakes"), "drinks")
         self.assertEqual(resolve_category_key("tortillas"), "tortillas")
+        self.assertEqual(resolve_category_key("hotdog"), "hot_dogs")
+        self.assertEqual(resolve_category_key("hot_dog"), "hot_dogs")
+        self.assertEqual(resolve_category_key("hotdogs"), "hot_dogs")
 
     def test_category_boundaries_are_preserved(self):
         self.assertEqual(
@@ -72,6 +76,17 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
                 "Alkohoolsed joogid (18+)",
             ),
             (
+                {"product_type": "main_courses", "category_ru": "Hot Dog", "category_et": "Hot Dog"},
+                "Хот-доги",
+                "Hot dogid",
+            ),
+            (
+                {"product_type": "main_courses", "category_ru": "Основные блюда", "category_et": "Pearoad",
+                 "dish_name_ru": "Classic hot dog"},
+                "Хот-доги",
+                "Hot dogid",
+            ),
+            (
                 {"product_type": "tempura", "category_ru": "Темпура", "category_et": "Tempura"},
                 "Темпура",
                 "Tempura",
@@ -87,6 +102,7 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
         self.assertEqual(get_category_emoji("Sushirullid ja maki"), "🍣")
         self.assertEqual(get_category_emoji("Алкогольные напитки (18+)"), "🍷")
         self.assertEqual(get_category_emoji("Соусы и добавки"), "🌶️")
+        self.assertEqual(get_category_emoji("hot_dogs"), "🌭")
         self.assertEqual(get_category_emoji("Сиропы и добавки"), "🍯")
 
 
