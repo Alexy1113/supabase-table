@@ -862,16 +862,32 @@ def main():
             st.markdown(
                 """
                 <style>
+                /* Keep the sort controls as real Streamlit radio inputs:
+                   they remain keyboard-, touch- and screen-reader-operable. */
                 div[data-testid="stRadio"] div[role="radiogroup"] {
                     display: flex;
-                    flex-wrap: wrap;
+                    flex-wrap: nowrap;
                     gap: 0.5rem;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    padding: 0.15rem 0.05rem 0.55rem;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: thin;
+                    touch-action: pan-x;
                 }
                 div[data-testid="stRadio"] div[role="radiogroup"] label {
+                    flex: 0 0 auto;
+                    min-height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     border: 1px solid rgba(128, 128, 128, 0.32);
                     border-radius: 999px;
-                    padding: 0.42rem 0.9rem;
+                    padding: 0.55rem 1rem;
+                    margin: 0;
                     background: rgba(128, 128, 128, 0.055);
+                    cursor: pointer;
+                    -webkit-tap-highlight-color: transparent;
                     transition: background-color 0.15s ease, border-color 0.15s ease;
                 }
                 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
@@ -885,34 +901,41 @@ def main():
                 }
                 div[data-testid="stRadio"] div[role="radiogroup"] label p {
                     margin: 0;
+                    white-space: nowrap;
+                }
+                @media (max-width: 560px) {
+                    div[data-testid="stRadio"] div[role="radiogroup"] {
+                        gap: 0.4rem;
+                    }
+                    div[data-testid="stRadio"] div[role="radiogroup"] label {
+                        min-height: 46px;
+                        padding: 0.6rem 0.85rem;
+                    }
                 }
                 </style>
                 """,
                 unsafe_allow_html=True,
             )
-            sort_options = {
-                f'↕️  {t["sort_default"]}': "default",
-                f'€↓  {t["sort_low"]}': "low",
-                f'€↑  {t["sort_high"]}': "high",
-                f'🔤  {t["sort_name"]}': "name",
+            sort_labels = {
+                "name": f'🔤  {t["sort_name"]}',
+                "low": f'€↓  {t["sort_low"]}',
+                "high": f'€↑  {t["sort_high"]}',
             }
-            selected_sort = st.radio(
+            sort_mode = st.radio(
                 t["sort"],
-                list(sort_options.keys()),
+                options=["name", "low", "high"],
+                format_func=lambda value: sort_labels[value],
                 horizontal=True,
                 key="menu_sort",
                 label_visibility="collapsed",
             )
-            sort_mode = sort_options[selected_sort]
 
             if sort_mode == "low":
                 display_df = filtered.sort_values("display_price", ascending=True)
             elif sort_mode == "high":
                 display_df = filtered.sort_values("display_price", ascending=False)
-            elif sort_mode == "name":
-                display_df = filtered.sort_values("display_name", key=lambda s: s.str.casefold())
             else:
-                display_df = filtered
+                display_df = filtered.sort_values("display_name", key=lambda s: s.str.casefold())
 
             st.caption(f'{t["showing"]} {len(display_df)} {t["of"]} {len(dishes)}')
             render_price_cards(display_df, language, t)
