@@ -19,7 +19,7 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
             "breakfast": ("Завтраки", "Hommikusöök"),
             "main_courses": ("Основные блюда", "Pearoad"),
             "gunkan": ("Гунканы", "Gunkan"),
-            "bowls": ("Боулы", "Bow'id"),
+            "bowls": ("Боулы", "Kausiroad"),
             "tortillas": ("Тортильи", "Tortillad"),
             "hot_dogs": ("Хот-доги", "Hot dogid"),
             "noodles_pasta": ("Лапша и Паста", "Nuudlid ja pasta"),
@@ -28,6 +28,19 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
             with self.subTest(category=key):
                 self.assertEqual(category_label(key, "Русский"), ru)
                 self.assertEqual(category_label(key, "Eesti"), et)
+
+    def test_legacy_bowl_labels_resolve_to_kausiroad(self):
+        for old_label in ("Bow'id", "Bowlid", "Bowls"):
+            with self.subTest(old_label=old_label):
+                self.assertEqual(
+                    resolve_category_key(
+                        "other",
+                        category_ru="Боулы",
+                        category_et=old_label,
+                    ),
+                    "bowls",
+                )
+                self.assertEqual(category_label("bowls", "Eesti"), "Kausiroad")
 
     def test_legacy_product_types_resolve_to_shared_categories(self):
         self.assertEqual(resolve_category_key("noodles"), "noodles_pasta")
