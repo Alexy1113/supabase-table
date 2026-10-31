@@ -394,7 +394,14 @@ def canonical_website_category(row, language):
     is_hot_dog = bool(
         re.search(r"\bhot[\s-]?dog\w*\b|\bхот[\s-]?дог\w*", source_text, flags=re.IGNORECASE)
     )
-    if is_break_time and is_hot_dog:
+    is_break_time_combo = product_type == "sets" or bool(
+        re.search(
+            r"[+]|\\b(?:menu|menuu|eine|combo|kombo|set|komplekt|комбо|набор|сет)\\b",
+            source_text,
+            flags=re.IGNORECASE,
+        )
+    )
+    if is_break_time and is_hot_dog and not is_break_time_combo:
         return category_label("hot_dogs", language)
 
     key = resolve_category_key(
