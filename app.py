@@ -1028,20 +1028,39 @@ def main():
             st.markdown(
                 """
                 <style>
-                /* Keep the sort controls as real Streamlit radio inputs:
-                   they remain keyboard-, touch- and screen-reader-operable. */
-                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] {
+                /* Keep horizontal scrolling inside the sort control, not the page. */
+                .st-key-menu_sort {
+                    display: block;
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                    overflow: hidden;
+                    box-sizing: border-box;
+                }
+                .st-key-menu_sort [data-testid="stRadio"] {
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                    overflow: hidden;
+                    box-sizing: border-box;
+                }
+                .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] {
                     display: flex;
                     flex-wrap: nowrap;
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                    box-sizing: border-box;
                     gap: 0.5rem;
                     overflow-x: auto;
                     overflow-y: hidden;
+                    overscroll-behavior-x: contain;
                     padding: 0.15rem 0.05rem 0.55rem;
                     -webkit-overflow-scrolling: touch;
                     scrollbar-width: thin;
                     touch-action: pan-x;
                 }
-                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label {
+                .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] label {
                     flex: 0 0 auto;
                     min-height: 44px;
                     display: flex;
@@ -1056,24 +1075,24 @@ def main():
                     -webkit-tap-highlight-color: transparent;
                     transition: background-color 0.15s ease, border-color 0.15s ease;
                 }
-                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
+                .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
                     background: rgba(15, 118, 110, 0.14);
                     border-color: #0f766e;
                     color: inherit;
                     font-weight: 700;
                 }
-                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label > div:first-child {
+                .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
                     display: none;
                 }
-                .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label p {
+                .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] label p {
                     margin: 0;
                     white-space: nowrap;
                 }
                 @media (max-width: 560px) {
-                    .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] {
+                    .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] {
                         gap: 0.4rem;
                     }
-                    .st-key-menu_sort div[data-testid="stRadio"] div[role="radiogroup"] label {
+                    .st-key-menu_sort [data-testid="stRadio"] [role="radiogroup"] label {
                         min-height: 46px;
                         padding: 0.6rem 0.85rem;
                     }
