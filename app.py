@@ -799,11 +799,89 @@ def main():
         st.rerun()
 
     st.markdown(
+        """
+        <style>
+        html, body {
+            max-width: 100%;
+            overflow-x: clip;
+        }
+        [data-testid="stMainBlockContainer"] {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .menuu-page-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: 100%;
+            min-width: 0;
+            margin: 0.25rem 0 0.5rem 0;
+        }
+        .menuu-page-header svg {
+            display: block;
+            flex: 0 0 92px;
+            width: 92px;
+            height: 92px;
+        }
+        .menuu-page-title {
+            min-width: 0;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            line-height: 1.15;
+            font-size: 2.35rem;
+            font-family: Segoe UI, Helvetica, Arial, sans-serif;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+        }
+        .cheapest-item-row > div:first-child {
+            min-width: 0;
+            flex: 1 1 auto;
+            overflow-wrap: anywhere;
+        }
+        .cheapest-item-name,
+        .cheapest-item-restaurant,
+        .cheapest-item-variant {
+            overflow-wrap: anywhere;
+            min-width: 0;
+        }
+        .price-card {
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .price-card-variant {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        @media (max-width: 560px) {
+            .menuu-page-header {
+                gap: 10px;
+            }
+            .menuu-page-header svg {
+                flex: 0 0 clamp(52px, 17vw, 68px);
+                width: clamp(52px, 17vw, 68px);
+                height: auto;
+            }
+            .menuu-page-title {
+                font-size: clamp(1.25rem, 6vw, 1.8rem);
+                line-height: 1.12;
+            }
+            .cheapest-item-row {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
         f"""
-        <div style="display:flex; align-items:center; gap:16px; margin:0.25rem 0 0.5rem 0;">
+        <div class="menuu-page-header">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 170"
                width="92" height="92" role="img" aria-label="Menüü Hinnad Jõhvi logo"
-               style="flex:0 0 92px;">
+               class="menuu-page-logo">
             <g transform="scale(0.92)" transform-origin="85 85">
               <circle cx="85" cy="85" r="81" fill="#ffffff"/>
               <circle cx="85" cy="85" r="82" fill="none" stroke="#000000" stroke-width="3"/>
@@ -824,7 +902,7 @@ def main():
                     text-anchor="middle">JÕHVI</text>
             </g>
           </svg>
-          <h1 style="margin:0; padding:0; line-height:1.15; font-size:2.35rem; font-family:Segoe UI, Helvetica, Arial, sans-serif; text-transform:uppercase;">
+          <h1 class="menuu-page-title">
             {html.escape(t["title"])}
           </h1>
         </div>
