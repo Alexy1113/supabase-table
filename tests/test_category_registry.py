@@ -119,7 +119,7 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
                 self.assertEqual(canonical_website_category(row, "Русский"), "Хот-доги")
                 self.assertEqual(canonical_website_category(row, "Eesti"), "Hot dogid")
 
-    def test_break_time_non_hot_dog_wraps_and_sets_keep_their_categories(self):
+    def test_break_time_non_hot_dog_wraps_stay_tortillas_but_hot_dog_combos_are_hot_dogs(self):
         wrap = {
             "restaurant_name": "Break Time Burger & Wrap",
             "product_type": "tortillas",
@@ -135,7 +135,7 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
             "dish_name_ru": "Hot Dog Menu",
         }
         self.assertEqual(canonical_website_category(wrap, "Русский"), "Тортильи")
-        self.assertEqual(canonical_website_category(combo, "Русский"), "Наборы и комбо")
+        self.assertEqual(canonical_website_category(combo, "Русский"), "Хот-доги")
 
     def test_emojis_come_from_the_same_registry(self):
         self.assertEqual(get_category_emoji("sets"), "📦")
