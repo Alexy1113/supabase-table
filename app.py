@@ -18,126 +18,6 @@ st.set_page_config(
 )
 
 
-SIDEBAR_SWIPE_JS = r"""
-export default function(component) {
-    const doc = document;
-    const mobileQuery = window.matchMedia("(max-width: 768px)");
-    const swipeThreshold = 64;
-    const edgeWidth = 28;
-    let touchStart = null;
-
-    function isSidebarOpen(sidebar) {
-        return sidebar?.getAttribute("aria-expanded") === "true";
-    }
-
-    function openSidebar() {
-        const button =
-            doc.querySelector('[data-testid="stExpandSidebarButton"]') ||
-            doc.querySelector('[data-testid="stSidebarCollapsedControl"]') ||
-            doc.querySelector('[data-testid="collapsedControl"]');
-        if (button) button.click();
-    }
-
-    function closeSidebar(sidebar) {
-        const button =
-            sidebar?.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
-            sidebar?.querySelector('[data-testid="stSidebarCollapseButton"]');
-        if (button) button.click();
-    }
-
-    function onTouchStart(event) {
-        if (!mobileQuery.matches || event.touches.length !== 1) {
-            touchStart = null;
-            return;
-        }
-
-        const touch = event.touches[0];
-        touchStart = {
-            x: touch.clientX,
-            y: touch.clientY,
-            target: event.target
-        };
-    }
-
-    function onTouchEnd(event) {
-        if (!touchStart || !mobileQuery.matches || event.changedTouches.length !== 1) {
-            touchStart = null;
-            return;
-        }
-
-        const start = touchStart;
-        touchStart = null;
-
-        const touch = event.changedTouches[0];
-        const deltaX = touch.clientX - start.x;
-        const deltaY = touch.clientY - start.y;
-
-        // Ignore taps and vertical scrolling; respond only to a deliberate
-        // horizontal swipe.
-        if (
-            Math.abs(deltaX) < swipeThreshold ||
-            Math.abs(deltaX) < Math.abs(deltaY) * 1.25
-        ) {
-            return;
-        }
-
-        const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-        const sidebarOpen = isSidebarOpen(sidebar);
-
-        // Open: swipe right starting at the left screen edge.
-        if (!sidebarOpen && deltaX > 0 && start.x <= edgeWidth) {
-            openSidebar();
-            return;
-        }
-
-        // Close: swipe left starting inside the visible sidebar.
-        if (sidebarOpen && deltaX < 0 && sidebar) {
-            const rect = sidebar.getBoundingClientRect();
-            const beganInsideSidebar =
-                sidebar.contains(start.target) ||
-                (start.x >= rect.left && start.x <= rect.right);
-
-            if (beganInsideSidebar) {
-                closeSidebar(sidebar);
-            }
-        }
-    }
-
-    function onTouchCancel() {
-        touchStart = null;
-    }
-
-    doc.addEventListener("touchstart", onTouchStart, { passive: true });
-    doc.addEventListener("touchend", onTouchEnd, { passive: true });
-    doc.addEventListener("touchcancel", onTouchCancel, { passive: true });
-
-    return () => {
-        doc.removeEventListener("touchstart", onTouchStart);
-        doc.removeEventListener("touchend", onTouchEnd);
-        doc.removeEventListener("touchcancel", onTouchCancel);
-    };
-};
-"""
-
-
-@st.cache_resource
-def get_sidebar_swipe_component():
-    """Register one trusted page-level controller for mobile sidebar swipes."""
-    return st.components.v2.component(
-        "menuu_mobile_sidebar_swipe",
-        js=SIDEBAR_SWIPE_JS,
-    )
-
-
-def render_mobile_sidebar_swipe():
-    """Mount a minimal controller for mobile sidebar swipe gestures."""
-    get_sidebar_swipe_component()(
-        key="menuu_mobile_sidebar_swipe",
-        width=1,
-        height=1,
-    )
-
-
 TRANSLATIONS = {
     "Русский": {
         "language": "Язык / Keel",
@@ -906,8 +786,6 @@ def filter_dishes(df, t, language):
 
 
 def main():
-    render_mobile_sidebar_swipe()
-
     language = st.sidebar.radio(
         "🌐 " + "Язык / Keel",
         ["Русский", "Eesti"],
