@@ -757,16 +757,23 @@ def filter_dishes(df, t, language):
             display: flex;
             flex-direction: column;
             align-items: stretch;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
+            overscroll-behavior-x: none;
             gap: 0.12rem;
         }
         [data-testid="stSidebar"] [class*="st-key-sidebar_category_filter_"] [data-testid="stRadio"] [role="radiogroup"] label {
             min-height: 40px;
+            width: 100%;
             max-width: 100%;
             min-width: 0;
             display: flex;
             flex-wrap: nowrap;
             align-items: center;
             white-space: nowrap;
+            overflow: hidden;
             margin: 0;
             padding: 0.42rem 0.65rem;
             border: 1px solid transparent;
@@ -844,14 +851,19 @@ def main():
         """
         <style>
         @media (max-width: 768px) {
-            [data-testid="stSidebar"][aria-expanded="true"] {
-                width: min(90vw, 440px) !important;
-                min-width: min(90vw, 440px) !important;
-                max-width: min(90vw, 440px) !important;
+            /* Streamlit 1.66+ exposes the sidebar state via data-collapsed. */
+            [data-testid="stSidebar"][data-collapsed="false"] {
+                width: min(94vw, 560px) !important;
+                min-width: min(94vw, 560px) !important;
+                max-width: min(94vw, 560px) !important;
+                overflow-x: hidden !important;
             }
-            [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarContent"] {
+            [data-testid="stSidebar"][data-collapsed="false"] [data-testid="stSidebarContent"],
+            [data-testid="stSidebar"][data-collapsed="false"] [data-testid="stSidebarUserContent"] {
                 width: 100%;
                 min-width: 0;
+                max-width: 100%;
+                overflow-x: hidden;
                 box-sizing: border-box;
             }
         }
