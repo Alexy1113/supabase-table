@@ -141,9 +141,17 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
             "category_et": "Hot Dog",
             "dish_name_ru": "Hot Dog + Friikartulid + jook",
         }
+        legacy_standalone = {
+            "restaurant_name": "Break Time Burger & Wrap",
+            "product_type": "tortillas",
+            "category_ru": "Основные блюда",
+            "category_et": "Pearoad",
+            "dish_name_et": "Klassikaline Hot-Dog",
+        }
         self.assertEqual(canonical_website_category(wrap, "Русский"), "Тортильи")
         self.assertEqual(canonical_website_category(combo, "Русский"), "Наборы и комбо")
         self.assertEqual(canonical_website_category(legacy_combo, "Русский"), "Наборы и комбо")
+        self.assertEqual(canonical_website_category(legacy_standalone, "Русский"), "Хот-доги")
 
     def test_emojis_come_from_the_same_registry(self):
         self.assertEqual(get_category_emoji("sets"), "📦")
