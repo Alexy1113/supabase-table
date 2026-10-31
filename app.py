@@ -130,11 +130,11 @@ def get_sidebar_swipe_component():
 
 
 def render_mobile_sidebar_swipe():
-    """Mount the zero-size controller without adding visible page content."""
+    """Mount a minimal controller for mobile sidebar swipe gestures."""
     get_sidebar_swipe_component()(
         key="menuu_mobile_sidebar_swipe",
-        width=0,
-        height=0,
+        width=1,
+        height=1,
     )
 
 
