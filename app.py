@@ -14,8 +14,129 @@ st.set_page_config(
     page_title="Menüü Hinnad",
     page_icon="🍽️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
+
+
+SIDEBAR_SWIPE_JS = r"""
+export default function(component) {
+    const doc = document;
+    const mobileQuery = window.matchMedia("(max-width: 768px)");
+    const swipeThreshold = 64;
+    const edgeWidth = 28;
+    let touchStart = null;
+
+    function isSidebarOpen(sidebar) {
+        return sidebar?.getAttribute("aria-expanded") === "true";
+    }
+
+    function openSidebar() {
+        const button =
+            doc.querySelector('[data-testid="stExpandSidebarButton"]') ||
+            doc.querySelector('[data-testid="stSidebarCollapsedControl"]') ||
+            doc.querySelector('[data-testid="collapsedControl"]');
+        if (button) button.click();
+    }
+
+    function closeSidebar(sidebar) {
+        const button =
+            sidebar?.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+            sidebar?.querySelector('[data-testid="stSidebarCollapseButton"]');
+        if (button) button.click();
+    }
+
+    function onTouchStart(event) {
+        if (!mobileQuery.matches || event.touches.length !== 1) {
+            touchStart = null;
+            return;
+        }
+
+        const touch = event.touches[0];
+        touchStart = {
+            x: touch.clientX,
+            y: touch.clientY,
+            target: event.target
+        };
+    }
+
+    function onTouchEnd(event) {
+        if (!touchStart || !mobileQuery.matches || event.changedTouches.length !== 1) {
+            touchStart = null;
+            return;
+        }
+
+        const start = touchStart;
+        touchStart = null;
+
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - start.x;
+        const deltaY = touch.clientY - start.y;
+
+        // Ignore taps and vertical scrolling; respond only to a deliberate
+        // horizontal swipe.
+        if (
+            Math.abs(deltaX) < swipeThreshold ||
+            Math.abs(deltaX) < Math.abs(deltaY) * 1.25
+        ) {
+            return;
+        }
+
+        const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        const sidebarOpen = isSidebarOpen(sidebar);
+
+        // Open: swipe right starting at the left screen edge.
+        if (!sidebarOpen && deltaX > 0 && start.x <= edgeWidth) {
+            openSidebar();
+            return;
+        }
+
+        // Close: swipe left starting inside the visible sidebar.
+        if (sidebarOpen && deltaX < 0 && sidebar) {
+            const rect = sidebar.getBoundingClientRect();
+            const beganInsideSidebar =
+                sidebar.contains(start.target) ||
+                (start.x >= rect.left && start.x <= rect.right);
+
+            if (beganInsideSidebar) {
+                closeSidebar(sidebar);
+            }
+        }
+    }
+
+    function onTouchCancel() {
+        touchStart = null;
+    }
+
+    doc.addEventListener("touchstart", onTouchStart, { passive: true });
+    doc.addEventListener("touchend", onTouchEnd, { passive: true });
+    doc.addEventListener("touchcancel", onTouchCancel, { passive: true });
+
+    return () => {
+        doc.removeEventListener("touchstart", onTouchStart);
+        doc.removeEventListener("touchend", onTouchEnd);
+        doc.removeEventListener("touchcancel", onTouchCancel);
+    };
+};
+"""
+
+
+@st.cache_resource
+def get_sidebar_swipe_component():
+    """Register one trusted page-level controller for mobile sidebar swipes."""
+    return st.components.v2.component(
+        "menuu_mobile_sidebar_swipe",
+        js=SIDEBAR_SWIPE_JS,
+    )
+
+
+def render_mobile_sidebar_swipe():
+    """Mount the zero-size controller without adding visible page content."""
+    get_sidebar_swipe_component()(
+        key="menuu_mobile_sidebar_swipe",
+        width=0,
+        height=0,
+    )
+
 
 TRANSLATIONS = {
     "Русский": {
@@ -696,7 +817,7 @@ def render_price_cards(df, language, t):
     st.markdown("".join(cards), unsafe_allow_html=True)
 
 
-def filter_dishes(df, t):
+def filter_dishes(df, t, language):
     st.sidebar.header(t["filters"])
     search = st.sidebar.text_input(t["search"], key="dish_search").strip().casefold()
 
@@ -707,22 +828,70 @@ def filter_dishes(df, t):
     if selected_restaurant != t["all"]:
         filtered = filtered[filtered["restaurant_display"] == selected_restaurant]
 
-    category_values = filtered["display_category"].dropna().astype(str).unique().tolist()
+    # Keep the complete category list visible and independent of the selected
+    # restaurant, so changing restaurants never turns the list into a dropdown
+    # or unexpectedly removes the current category option.
+    category_values = df["display_category"].dropna().astype(str).unique().tolist()
     other_names = {"другое", "другие", "muu", "muud", "other", "others"}
     category_values.sort(key=lambda category: (
         category.casefold() in other_names,
         category.casefold(),
     ))
     categories = [t["all"]] + category_values
-    category_options = {
-        t["all"]: t["all"],
-        **{
-            f'{category_emoji(category)}  {category}': category
-            for category in categories if category != t["all"]
-        },
-    }
-    selected_category_label = st.sidebar.selectbox(t["category"], list(category_options))
-    selected_category = category_options[selected_category_label]
+
+    # Style the native radio widget as a clear, touch-friendly vertical list.
+    st.sidebar.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.12rem;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            margin: 0;
+            padding: 0.42rem 0.65rem;
+            border: 1px solid transparent;
+            border-radius: 0.55rem;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
+            display: none;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label p {
+            margin: 0;
+            line-height: 1.3;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
+            background: rgba(15, 118, 110, 0.13);
+            border-color: rgba(15, 118, 110, 0.45);
+            border-left: 3px solid #0f766e;
+            font-weight: 700;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:hover {
+            background: rgba(128, 128, 128, 0.09);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    selected_category = st.sidebar.radio(
+        t["category"],
+        options=categories,
+        format_func=lambda category: (
+            f"🌐  {category}" if category == t["all"]
+            else f"{category_emoji(category)}  {category}"
+        ),
+        key=f"sidebar_category_filter_{'et' if language == 'Eesti' else 'ru'}",
+        label_visibility="visible",
+    )
+
     if selected_category != t["all"]:
         filtered = filtered[filtered["display_category"] == selected_category]
 
@@ -737,6 +906,8 @@ def filter_dishes(df, t):
 
 
 def main():
+    render_mobile_sidebar_swipe()
+
     language = st.sidebar.radio(
         "🌐 " + "Язык / Keel",
         ["Русский", "Eesti"],
@@ -819,7 +990,7 @@ def main():
         st.info(t["empty"])
         st.stop()
 
-    filtered = filter_dishes(dishes, t)
+    filtered = filter_dishes(dishes, t, language)
 
     total_items = len(filtered)
     m1, m2, m3, m4, m5 = st.columns(5)
