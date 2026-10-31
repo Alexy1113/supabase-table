@@ -509,7 +509,7 @@ def render_cheapest_by_category(df, language, t):
         .cheapest-category-divider {
             border: 0;
             border-top: 1px solid rgba(128, 128, 128, 0.28);
-            margin: 1.15rem 0 1.05rem 0;
+            margin: 0.3rem 0;
         }
         @media (max-width: 560px) {
             .cheapest-item-row { padding: 0.65rem; gap: 0.55rem; }
