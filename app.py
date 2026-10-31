@@ -381,6 +381,22 @@ def canonical_website_category(row, language):
         str(row.get(key) or "")
         for key in ("dish_name_ru", "dish_name_et", "dish_name")
     )
+
+    # Break Time's entire Hot Dog menu section is one dedicated category,
+    # including legacy rows previously stored as tortillas (hot dogs in lavash).
+    # Keep explicitly detected combo/set products in the sets category.
+    restaurant_name = nonempty(row.get("restaurant_name")) or ""
+    source_text = " ".join(
+        str(row.get(key) or "")
+        for key in ("category_ru", "category_et")
+    ) + " " + dish_name
+    is_break_time = bool(re.search(r"break[\s_-]*time", restaurant_name, flags=re.IGNORECASE))
+    is_hot_dog = bool(
+        re.search(r"\bhot[\s-]?dog\w*\b|\bхот[\s-]?дог\w*", source_text, flags=re.IGNORECASE)
+    )
+    if is_break_time and is_hot_dog and product_type != "sets":
+        return category_label("hot_dogs", language)
+
     key = resolve_category_key(
         product_type,
         category_ru=row.get("category_ru"),

@@ -97,6 +97,46 @@ class WebsiteCategoryRegistryTests(unittest.TestCase):
                 self.assertEqual(canonical_website_category(row, "Русский"), expected_ru)
                 self.assertEqual(canonical_website_category(row, "Eesti"), expected_et)
 
+    def test_all_break_time_hot_dogs_use_hot_dogs_even_when_legacy_type_is_tortillas(self):
+        rows = (
+            {
+                "restaurant_name": "Break Time Burger & Wrap",
+                "product_type": "tortillas",
+                "category_ru": "Hot Dog",
+                "category_et": "Hot Dog",
+                "dish_name_ru": "Hot dog в лаваше",
+            },
+            {
+                "restaurant_name": "Break Time Burger & Wrap",
+                "product_type": "tortillas",
+                "category_ru": "Основные блюда",
+                "category_et": "Pearoad",
+                "dish_name_et": "Klassikaline Hot-Dogid",
+            },
+        )
+        for row in rows:
+            with self.subTest(row=row):
+                self.assertEqual(canonical_website_category(row, "Русский"), "Хот-доги")
+                self.assertEqual(canonical_website_category(row, "Eesti"), "Hot dogid")
+
+    def test_break_time_non_hot_dog_wraps_and_sets_keep_their_categories(self):
+        wrap = {
+            "restaurant_name": "Break Time Burger & Wrap",
+            "product_type": "tortillas",
+            "category_ru": "Врапы и шаурма",
+            "category_et": "Wrapid ja kebabid",
+            "dish_name_ru": "Chicken wrap",
+        }
+        combo = {
+            "restaurant_name": "Break Time Burger & Wrap",
+            "product_type": "sets",
+            "category_ru": "Hot Dog",
+            "category_et": "Hot Dog",
+            "dish_name_ru": "Hot Dog Menu",
+        }
+        self.assertEqual(canonical_website_category(wrap, "Русский"), "Тортильи")
+        self.assertEqual(canonical_website_category(combo, "Русский"), "Наборы и комбо")
+
     def test_emojis_come_from_the_same_registry(self):
         self.assertEqual(get_category_emoji("sets"), "📦")
         self.assertEqual(get_category_emoji("Sushirullid ja maki"), "🍣")
